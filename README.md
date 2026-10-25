@@ -10,12 +10,13 @@ over Japan, layer by layer, against the clock. Made for ages 8–15.
 
 ## How to play
 
-1. Open the link on your phone, pick **Easy (8+)**, **Normal (10+)** or **Hard (13+)**.
-2. Tap **Scan the card to start**, allow the camera, and point it at the card
-   (on paper, or on another screen). When it's recognised the game starts.
-3. An **order** comes in, such as *Sapporo Miso Ramen*. The bowl is at the top and the
-   ingredients are underneath. Build it the way a ramen cook does:
-   **broth → noodles → toppings** (toppings in any order).
+1. Open the link on your phone and tap **Scan the card**. Allow the camera, and point it at the card
+   (on paper, or on another screen).
+2. When the card is recognised, the ramen shop opens over the live camera. **From then on the
+   card isn't needed**: you can move the phone freely. Tilt the phone or drag to look around the 3D shop.
+3. An **order** comes in, such as *Sapporo Miso Ramen*, with a big ingredient ticket at the top.
+   A 3D bowl stands on its counter, and 3D ingredients wait on little plates below it. Tap them to build
+   the bowl the way a ramen cook does: **broth → noodles → toppings** (toppings in any order).
 4. When every ingredient is in, the bowl is **served automatically** and you
    learn a fact about that region. Then the next order arrives.
 
@@ -26,8 +27,8 @@ over Japan, layer by layer, against the clock. Made for ages 8–15.
 | **Mistakes** | A wrong ingredient or the wrong layer (noodles before broth) takes 1.5–2 s off the clock and breaks your combo. It doesn't cost a life. |
 | **Combo / multiplier** | Every correct tap adds 1 to the combo. Every 4 in a row raise the multiplier: ×2, ×3, ×4, up to ×5. A mistake resets it to ×1. |
 | **Score** | 10 × multiplier per ingredient. Serving a bowl adds (100 + up to 150 speed bonus + 50 for a perfect bowl) × multiplier. Points fly into the counter, and the counter rolls and **locks** with a click. |
-| **Game over** | The final score's digits spin and lock one at a time, then a 完 (finished) hanko seal stamps it. Your best score for each difficulty is saved on your phone. |
-| **Difficulty ramp** | Orders start with a few toppings and grow to the full regional recipe. Decoy ingredients go from 2 up to 8. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. |
+| **Game over** | The final score's digits spin and lock one at a time, then a 完 (finished) hanko seal stamps it. Your best score is saved on your phone. |
+| **One ramp, ages 8–15** | There are no difficulty levels. The game starts gentle and speeds up with every bowl. Orders grow from a few toppings to the full regional recipe, and decoys go from 2 up to 7. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. After 6 s with no progress, the wanted ingredients hop to help. |
 
 ## The 12 regional bowls
 
@@ -67,6 +68,10 @@ sushi card (correctly no match).
 
 The look comes from the [Anatomy](https://github.com/wheresryan22/anatomy) skill (MIT):
 
+- The **3D shop is drawn the Anatomy way**, in [`js/stage.js`](js/stage.js). It uses an orthographic camera at Anatomy's
+  azimuth 45° / elevation 30° (2.5D, never top-down) and four-tone flat shading, where the lit top is the exact colour and
+  sides step toward walnut. Every solid has an ink outline. Colours are written raw in sRGB, so each 3D ingredient
+  matches its icon on the order ticket.
 - The **ramen bowl is an Anatomy turned solid**. One meridian profile goes through
   `lathe.mjs` → `solidOf`, then `iso-kit.mjs` → `solidSvg`, which gives four-tone
   shading, a halo, crease lines and a raimon border on the front half only. The kit
@@ -85,7 +90,7 @@ The look comes from the [Anatomy](https://github.com/wheresryan22/anatomy) skill
 | `js/game.js` | Game loop, orders, timer, combos, multiplier, scoring, score lock, sound (WebAudio, no files). |
 | `js/data.js` | Ingredients, regional recipes, difficulty settings. |
 | `js/art.js` | Ingredient drawings, the Anatomy bowl, the Japan map. |
-| `js/scan.js` | MindAR image tracking. Starts the game when the card is recognised. |
+| `js/stage.js` | The 3D shop: card recognition (MindAR, recognition only), then the 2.5D Anatomy-style stage over the camera. |
 | `css/` | The sepia theme and game layout. |
 | `target.png` / `targets.mind` | The card and its compiled MindAR data. |
 | `tools/make-target.html` | Redraws `target.png` and compiles `targets.mind` in the browser (`?build=1`). |

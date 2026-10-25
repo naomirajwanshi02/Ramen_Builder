@@ -25,6 +25,16 @@ body.ar #ar{display:block}
 #ar.nocam{background:radial-gradient(120% 90% at 50% 40%,#5b4630,#1c120a)}
 #ar video{filter:sepia(.18) saturate(1.05)}
 #ar canvas{display:block}
+#ar video.feed{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#ar canvas.stage{position:absolute;inset:0;z-index:2}
+#ar .labels{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.tlabel{position:absolute;left:0;top:0;padding:3px 9px 4px;border-radius:999px;background:var(--glass);color:var(--anatomy-strong);
+  font-weight:800;font-size:13px;line-height:1.1;text-align:center;white-space:nowrap;box-shadow:0 0 0 1px var(--anatomy-mid),0 2px 6px #3b2a1c33;
+  transition:opacity .25s}
+.tlabel small{display:block;font:600 8.5px/1.2 var(--anatomy-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--anatomy-muted)}
+.tlabel.gone{opacity:0}
+.tlabel.bad{animation:badlabel .5s}
+@keyframes badlabel{30%{background:var(--anatomy-red);color:#fff8ec}}
 
 /* ---------- screens & overlays ---------- */
 .screen{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;
@@ -103,7 +113,7 @@ body.ar #ar{display:block}
 @keyframes countin{from{transform:scale(2.2);opacity:0}}
 
 /* ================= AR HUD ================= */
-#hud{flex-direction:column;justify-content:space-between;
+#hud{flex-direction:column;justify-content:space-between;align-items:stretch;
   padding:calc(var(--safe-t) + 8px) calc(var(--safe-r) + 8px) calc(var(--safe-b) + 8px) calc(var(--safe-l) + 8px)}
 .hud.top{display:flex;align-items:stretch;gap:6px;width:100%;max-width:560px;margin:0 auto;pointer-events:auto}
 .score{flex:1;display:flex;align-items:center;gap:6px;padding:5px 10px;min-height:48px;background:var(--glass);min-width:0}
@@ -130,7 +140,10 @@ body.ar #ar{display:block}
 .iconbtn{width:48px;border-radius:6px;border:0;background:var(--glass);box-shadow:var(--anatomy-lift),0 0 0 1px var(--anatomy-mid);
   font-size:13px;letter-spacing:-2px;color:var(--anatomy-strong);font-weight:900}
 
-.ordercard{width:100%;max-width:560px;margin:0 auto;padding:22px 10px 10px;background:var(--glass);pointer-events:auto}
+.hudstack{display:flex;flex-direction:column;gap:6px;width:100%;max-width:560px;margin:0 auto}
+.draghint{align-self:center;font:600 10px/1 var(--anatomy-mono);letter-spacing:.12em;text-transform:uppercase;color:#fff8ec;
+  text-shadow:0 1px 3px #000;opacity:.85;padding-bottom:2px}
+.ordercard{width:100%;padding:22px 10px 10px;background:var(--glass);pointer-events:auto}
 .ordmain{display:flex;align-items:center;gap:8px}
 .ordmain .map{width:46px;height:46px;flex:none}
 .ordtext{flex:1;min-width:0}
@@ -138,15 +151,16 @@ body.ar #ar{display:block}
 .hint{font-family:var(--anatomy-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--anatomy-muted);margin-top:3px}
 .hint b{color:var(--anatomy-red)}
 .ordread{font-size:15px;font-weight:800;color:var(--anatomy-strong);flex:none}
-.ticket{display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
-.chip{position:relative;width:36px;height:36px;border-radius:9px;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);
-  display:grid;place-items:center;transition:all .25s}
-.chip svg{width:31px;height:31px}
+.ticket{display:flex;gap:5px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.chip{position:relative;width:62px;padding:3px 2px 4px;border-radius:10px;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);
+  display:flex;flex-direction:column;align-items:center;transition:all .25s}
+.chip svg{width:48px;height:48px}
+.chip span{font-size:10.5px;font-weight:800;line-height:1.05;color:var(--anatomy-strong);text-align:center;min-height:2.1em;display:flex;align-items:center}
 .chip.next{box-shadow:0 0 0 2.5px var(--anatomy-red);transform:translateY(-2px)}
 .chip.done{opacity:.45}
-.chip.done::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-weight:900;color:var(--anatomy-green);font-size:22px;
+.chip.done::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-weight:900;color:var(--anatomy-green);font-size:34px;
   text-shadow:0 0 3px var(--anatomy-card),0 0 6px var(--anatomy-card)}
-.ticket .sep{width:6px;height:2px;background:var(--anatomy-lo);border-radius:2px}
+.ticket .sep{width:5px;height:2px;background:var(--anatomy-lo);border-radius:2px}
 .timer{height:9px;border-radius:6px;background:var(--anatomy-shade-1);box-shadow:inset 0 0 0 1px var(--anatomy-faint);overflow:hidden;margin-top:9px}
 .timer b{display:block;height:100%;background:var(--anatomy-hi);transform-origin:left;border-radius:6px}
 .timer.hot b{background:var(--anatomy-red);animation:hot .5s steps(2) infinite}
@@ -170,7 +184,7 @@ body.ar #ar{display:block}
 .pop.mid{font-size:20px;color:#fff8ec;text-shadow:0 2px 0 #3b2a1c,0 0 10px #000a}
 @keyframes rise{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}15%{opacity:1;transform:translate(-50%,0) scale(1.1)}
   70%{opacity:1;transform:translate(-50%,-24px) scale(1)}100%{opacity:0;transform:translate(-50%,-40px)}}
-.toast{position:fixed;left:50%;top:calc(var(--safe-t) + 66px);z-index:43;transform:translate(-50%,-30px);width:min(calc(100vw - 16px),540px);
+.toast{position:fixed;left:50%;bottom:calc(var(--safe-b) + 28px);z-index:43;transform:translate(-50%,30px);width:min(calc(100vw - 16px),540px);
   padding:10px 12px;font-size:13px;line-height:1.35;opacity:0;visibility:hidden;background:var(--glass);
   transition:transform .4s var(--anatomy-ease),opacity .4s,visibility 0s .4s}
 .toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .4s var(--anatomy-ease),opacity .4s}
@@ -216,16 +230,17 @@ body.ar #ar{display:block}
 .errbox[hidden]{display:none}
 
 /* small phones */
-@media (max-width:360px){
-  .odo{font-size:20px}.odo .d{height:26px}
+@media (max-width:380px){
+  .odo{font-size:20px}
   .mult{min-width:48px;font-size:18px}
   .lives svg{width:17px;height:17px}
-  .chip{width:31px;height:31px}.chip svg{width:27px;height:27px}
+  .chip{width:54px}.chip svg{width:42px;height:42px}.chip span{font-size:9.5px}
 }
-@media (max-height:600px){
-  .ticket{margin-top:4px}
-  .chip{width:30px;height:30px}.chip svg{width:26px;height:26px}
+@media (max-height:680px){
+  .ticket{margin-top:6px}
+  .chip{width:52px}.chip svg{width:38px;height:38px}
   .ordercard{padding-top:18px}
+  .ordmain .map{display:none}
 }
 /* landscape: order card shrinks to the bottom-left so the card stays visible */
 @media (orientation:landscape) and (max-height:500px){

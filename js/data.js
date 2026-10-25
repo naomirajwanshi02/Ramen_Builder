@@ -97,8 +97,13 @@ export const SHORT = {
   seabura: 'Back fat', pepper: 'Black pepper', porkBelly: 'Pork belly', wakame: 'Wakame',
 };
 
-export const DIFFICULTY = {
-  easy:   { label: 'Easy',   ages: '8+',  perStep: 4.4, floor: 1.9, shrink: 0.965, decoys: [2, 5], lives: 3 },
-  normal: { label: 'Normal', ages: '10+', perStep: 3.4, floor: 1.4, shrink: 0.955, decoys: [3, 7], lives: 3 },
-  hard:   { label: 'Hard',   ages: '13+', perStep: 2.6, floor: 1.0, shrink: 0.945, decoys: [4, 8], lives: 3 },
+// One endless ramp for ages 8–15: it starts gentle and gets faster with every bowl served.
+export const PACE = {
+  perStep: 4.2,   // seconds per ingredient on the first order
+  shrink: 0.955,  // each served bowl multiplies that by this
+  floor: 1.2,     // never faster than this per ingredient
+  decoys: [2, 7], // wrong ingredients mixed in: from 2 up to 7 by the 14th bowl
+  toppings: 2,    // toppings on the first order; one more every 2 bowls, up to the full recipe
+  lives: 3,
+  hintAfter: 6,   // seconds without progress before the wanted ingredients hop
 };

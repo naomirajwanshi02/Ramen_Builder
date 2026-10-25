@@ -39,12 +39,7 @@
       <div class="logo" id="logo"></div>
       <h1>Ramen Builder</h1>
       <div class="kana">ラーメン</div>
-      <p>Scan the card and a ramen shop pops up on it. Build bowls from all over Japan before time runs out!</p>
-    </div>
-    <div class="seg" role="group" aria-label="Difficulty" id="diff">
-      <button data-d="easy" aria-pressed="true">Easy<small>age 8+</small></button>
-      <button data-d="normal" aria-pressed="false">Normal<small>age 10+</small></button>
-      <button data-d="hard" aria-pressed="false">Hard<small>age 13+</small></button>
+      <p>Scan the card to open the ramen shop, then build bowls from all over Japan before time runs out. It gets faster with every bowl!</p>
     </div>
     <div class="start-actions">
       <button class="btn red" id="scanBtn">📷 Scan the card</button>
@@ -58,7 +53,7 @@
 
 <!-- ============ SCAN GUIDE (also shown when the card is lost mid-game) ============ -->
 <div id="guide" class="overlay">
-  <div class="scan-top plate"><b id="guideTitle">Point your camera at the Ramen Builder card</b><span class="cap">Flat on a table · good light · 20–40 cm away</span></div>
+  <div class="scan-top plate"><b id="guideTitle">Point your camera at the Ramen Builder card</b><span class="cap">Once it's found you can move freely</span></div>
   <div class="frame"><i></i><i></i><i></i><i></i><div class="sweep"></div></div>
   <div class="scan-bottom">
     <div class="status" id="scanStatus">Starting camera…</div>
@@ -74,6 +69,7 @@
 
 <!-- ============ AR HUD ============ -->
 <div id="hud" class="overlay">
+  <div class="hudstack" id="hudstack">
   <div class="hud top">
     <div class="plate score" id="scoreBox">
       <div><div class="cap">Score</div><div class="odo" id="odo"></div></div>
@@ -97,6 +93,8 @@
     <div class="ticket" id="ticket"></div>
     <div class="timer" id="timer"><b id="timerBar"></b></div>
   </div>
+  </div>
+  <div class="draghint" id="dragHint">Tap the ingredients · drag to look around</div>
 </div>
 
 <!-- ============ PAUSE ============ -->
@@ -116,7 +114,7 @@
   <div class="col center">
     <div class="plate final">
       <span class="corner tl">Fig. 99</span><span class="corner tr">Shop closed</span>
-      <span class="corner bl" id="overDiff">easy</span><span class="corner br" id="overBest">best 0</span>
+      <span class="corner bl" id="overOrders">0 orders</span><span class="corner br" id="overBest">best 0</span>
       <svg class="hanko" id="hanko" viewBox="0 0 100 100" aria-hidden="true">
         <circle cx="50" cy="50" r="44" fill="#f6eddb" fill-opacity=".6" stroke="#b5452f" stroke-width="6"/>
         <circle cx="50" cy="50" r="36" fill="none" stroke="#b5452f" stroke-width="2"/>

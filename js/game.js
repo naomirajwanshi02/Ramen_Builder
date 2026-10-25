@@ -1,7 +1,7 @@
-// Ramen_Builder — game rules, scoring and HUD. The 3D/AR side lives in ar3d.js.
-import { INGREDIENTS, RECIPES, DIFFICULTY, LAYER_NAME, SHORT } from './data.js';
+// Ramen_Builder — game rules, scoring and HUD. The 3D stage lives in stage.js.
+import { INGREDIENTS, RECIPES, PACE, LAYER_NAME, SHORT } from './data.js';
 import { ingredientSvg, bowlSvg, japanMapSvg } from './art.js';
-import * as AR from './ar3d.js';
+import * as AR from './stage.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -39,7 +39,6 @@ const buzz = (ms) => { try { navigator.vibrate?.(ms); } catch { /* unsupported *
 
 // ------------------------------------------------------------ state
 const S = {
-  diff: store.get('diff', 'easy'),
   phase: 'menu', // menu | scan | count | play | serving | paused | over
   score: 0, combo: 0, maxCombo: 0, mult: 1, maxMult: 1, lives: 3, served: 0,
   recipe: null, need: [], bowl: null, mistakes: 0, idle: 0,
@@ -89,7 +88,7 @@ function renderMult(bumped){
 }
 const LIFE = `<svg viewBox="0 0 24 24"><path d="M2 10h20q-1 10-10 11Q3 20 2 10Z" fill="#f6eddb" stroke="#3b2a1c" stroke-width="1.5"/><path d="M4 10q8 3 16 0" fill="none" stroke="#b5452f" stroke-width="1.2"/><path d="M8 7q-1-3 1-5M12 7q-1-3 1-5M16 7q-1-3 1-5" fill="none" stroke="#8c7457" stroke-width="1.2" stroke-linecap="round"/></svg>`;
 function renderLives(){
-  const max = DIFFICULTY[S.diff].lives;
+  const max = PACE.lives;
   $('lives').innerHTML = Array.from({ length: max }, () => LIFE).join('');
   [...$('lives').children].forEach((el, i) => el.classList.toggle('gone', i >= S.lives));
 }
@@ -122,22 +121,21 @@ function toast(html, ms = 3200){
 // ------------------------------------------------------------ orders
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const pick = (list, n) => shuffle([...list]).slice(0, Math.max(0, n));
-const BASE_TOPPINGS = { easy: 2, normal: 3, hard: 4 };
-const MAX_TOKENS = 10; // how many ingredients float around the bowl at once
+const MAX_TOKENS = 10; // how many ingredient plates are on the counter at once
 
 function newOrder(){
-  const d = DIFFICULTY[S.diff];
+  const d = PACE;
   const choices = RECIPES.filter((r) => r.id !== S.lastRecipe);
   const r = choices[Math.floor(Math.random() * choices.length)];
   S.lastRecipe = r.id;
   S.recipe = r;
-  const nTop = Math.min(r.toppings.length, BASE_TOPPINGS[S.diff] + Math.floor(S.served / 2));
+  const nTop = Math.min(r.toppings.length, d.toppings + Math.floor(S.served / 2));
   S.need = [r.broth, r.noodles, ...r.toppings.slice(0, nTop)];
   S.bowl = { broth: null, noodles: null, toppings: [] };
   S.mistakes = 0; S.idle = 0;
 
   // Decoys come from the same layers, so the player has to know which broth and which noodle.
-  const ramp = Math.min(1, S.served / 12);
+  const ramp = Math.min(1, S.served / 14);
   const nDecoy = Math.min(MAX_TOKENS - S.need.length, Math.round(d.decoys[0] + (d.decoys[1] - d.decoys[0]) * ramp));
   const all = Object.keys(INGREDIENTS).filter((id) => !S.need.includes(id));
   const byLayer = (layer) => all.filter((id) => INGREDIENTS[id].layer === layer);
@@ -156,6 +154,7 @@ function newOrder(){
   AR.setTokens(shuffle([...S.need, ...decoys]));
   AR.hint(null);
   renderTicket();
+  requestAnimationFrame(() => AR.layout()); // the ticket height may have changed
   S.phase = 'play';
 }
 
@@ -167,7 +166,7 @@ function renderTicket(){
     const done = have(id);
     const next = !done && INGREDIENTS[id].layer === layer;
     const sep = i === 1 || i === 2 ? '<span class="sep"></span>' : '';
-    return `${sep}<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${ingredientSvg(id, { size: 31 })}</div>`;
+    return `${sep}<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${ingredientSvg(id, { size: 48 })}<span>${SHORT[id]}</span></div>`;
   }).join('');
   const got = S.need.filter(have).length;
   $('ordRead').textContent = `${got}/${S.need.length}`;
@@ -178,8 +177,9 @@ function renderTicket(){
 
 // ------------------------------------------------------------ picking an ingredient in AR
 function onPick(id){
-  if (S.phase !== 'play' || !AR.isTracked()) return;
+  if (S.phase !== 'play') return;
   sound.unlock();
+  $('dragHint').style.opacity = '0';
   const ing = INGREDIENTS[id];
   const layer = nextLayer();
   const inRecipe = S.need.includes(id);
@@ -204,8 +204,8 @@ function onPick(id){
   sound.good(S.bowl.toppings.length + (S.bowl.noodles ? 1 : 0));
   buzz(12);
   tagAt(at, `+${10 * S.mult} ${SHORT[id]}`, 'good');
-  if (bumped){ sound.combo(m); popup(`${S.combo} COMBO!  ×${m}`, 'big', 0.3); }
-  else if (S.mult === 5 && S.combo % 5 === 0) popup(`${S.combo} COMBO!`, 'big', 0.3);
+  if (bumped){ sound.combo(m); popup(`${S.combo} COMBO!  ×${m}`, 'big', 0.62); }
+  else if (S.mult === 5 && S.combo % 5 === 0) popup(`${S.combo} COMBO!`, 'big', 0.62);
   addScore(10 * S.mult);
   renderMult(bumped);
   renderTicket();
@@ -217,8 +217,7 @@ function mistake(at, message){
   const lost = S.combo;
   S.combo = 0; S.mult = 1;
   renderMult(false);
-  const penalty = S.diff === 'easy' ? 1.5 : 2;
-  S.timeLeft = Math.max(0.01, S.timeLeft - penalty);
+  S.timeLeft = Math.max(0.01, S.timeLeft - 1.5);
   sound.bad(); buzz(80);
   tagAt(at, `✕ ${message}`, 'bad');
   if (lost >= 4) popup('Combo lost', 'mid', 0.3);
@@ -275,22 +274,18 @@ function loop(t){
   const dt = Math.min(0.05, (t - lastT) / 1000 || 0);
   lastT = t;
   if (S.phase === 'play'){
-    const tracked = AR.isTracked();
-    $('timer').classList.toggle('paused', !tracked);
-    if (tracked){
-      S.timeLeft -= dt;
-      S.idle += dt;
-      // Easy mode nudges: after 5 s with no progress, the wanted ingredients hop.
-      if (S.diff === 'easy' && S.idle > 5){
-        const layer = nextLayer();
-        AR.hint(S.need.filter((id) => !have(id) && INGREDIENTS[id].layer === layer));
-      }
+    S.timeLeft -= dt;
+    S.idle += dt;
+    // A nudge for younger players: after a while with no progress, the wanted ingredients hop.
+    if (S.idle > PACE.hintAfter){
+      const layer = nextLayer();
+      AR.hint(S.need.filter((id) => !have(id) && INGREDIENTS[id].layer === layer));
     }
     const frac = Math.max(0, S.timeLeft / S.timeMax);
     $('timerBar').style.transform = `scaleX(${frac})`;
     const hot = frac < 0.3;
-    $('timer').classList.toggle('hot', hot && tracked);
-    if (hot && tracked && t - S.lastTickAt > (frac < 0.15 ? 250 : 500)){ S.lastTickAt = t; sound.tick(); }
+    $('timer').classList.toggle('hot', hot);
+    if (hot && t - S.lastTickAt > (frac < 0.15 ? 250 : 500)){ S.lastTickAt = t; sound.tick(); }
     if (S.timeLeft <= 0) timeout();
   }
   requestAnimationFrame(loop);
@@ -300,7 +295,7 @@ requestAnimationFrame(loop);
 // ------------------------------------------------------------ flow
 function resetGame(){
   Object.assign(S, { score: 0, combo: 0, maxCombo: 0, mult: 1, maxMult: 1, served: 0, lastRecipe: null, learned: new Set() });
-  S.lives = DIFFICULTY[S.diff].lives;
+  S.lives = PACE.lives;
   buildOdo($('odo'), ODO_DIGITS);
   setOdo($('odo'), 0);
   renderMult(false); renderLives();
@@ -326,6 +321,8 @@ function startGame(){
   overlay('hud', true);
   $('ordName').textContent = 'Get ready…';
   $('ticket').innerHTML = ''; $('hint').textContent = ''; $('ordPlace').textContent = ''; $('ordRead').textContent = '';
+  $('dragHint').style.opacity = '';
+  AR.layout();
   AR.newBowl();
   countdown(() => newOrder());
 }
@@ -334,10 +331,10 @@ function gameOver(){
   S.phase = 'over';
   AR.clearTokens();
   show('over');
-  const best = store.get(`best.${S.diff}`, 0);
+  const best = store.get('best', 0);
   const isBest = S.score > best;
-  if (isBest) store.set(`best.${S.diff}`, S.score);
-  $('overDiff').textContent = DIFFICULTY[S.diff].label;
+  if (isBest) store.set('best', S.score);
+  $('overOrders').textContent = `${S.served} orders`;
   $('overBest').textContent = `best ${Math.max(best, S.score)}`;
   $('stBowls').textContent = S.served;
   $('stCombo').textContent = S.maxCombo;
@@ -378,26 +375,20 @@ function resume(){
 }
 
 // ------------------------------------------------------------ AR session
+// The card is only needed once: when it is recognised the shop opens on screen
+// over the live camera, and the phone can move freely from then on.
 function onFound(){
+  if (S.started) return;
+  S.started = true;
   overlay('guide', false);
-  $('guide').classList.remove('lost');
-  if (!S.started){
-    S.started = true;
-    sound.serve(); buzz(40);
-    overlay('found', true);
-    setTimeout(() => { overlay('found', false); startGame(); }, 1400);
-  }
-}
-function onLost(){
-  if (['play', 'count', 'serving'].includes(S.phase)){
-    $('guideTitle').textContent = 'Card lost — point back at the card to keep cooking';
-    $('scanStatus').textContent = 'The timer is paused';
-    $('guide').classList.add('lost');
-    overlay('guide', true);
-  }
+  AR.open($('ar'));
+  sound.serve(); buzz(40);
+  overlay('found', true);
+  setTimeout(() => { overlay('found', false); startGame(); }, 1400);
 }
 async function openShop(demo){
   sound.unlock();
+  AR.askMotion(); // iPhone asks once for motion access (used for a little tilt parallax)
   S.phase = 'scan'; S.started = false;
   show(null);
   document.body.classList.add('ar');
@@ -406,8 +397,8 @@ async function openShop(demo){
   overlay('guide', !demo);
   try {
     await AR.preloadIcons();
-    if (demo) await AR.startDemo($('ar'), { onFound });
-    else await AR.startAR($('ar'), { onStatus: (t) => { $('scanStatus').textContent = t; }, onFound, onLost });
+    if (demo){ await AR.openDemo($('ar')); S.started = false; onFoundDemo(); }
+    else await AR.scan($('ar'), { onStatus: (t) => { $('scanStatus').textContent = t; }, onFound });
   } catch (err) {
     console.error(err);
     const msg = String(err?.message || err);
@@ -421,22 +412,16 @@ function closeShop(){
   document.body.classList.remove('ar');
   ['guide', 'hud', 'count', 'found'].forEach((id) => overlay(id, false));
   S.phase = 'menu';
-  syncDiff();
+  syncBest();
   show('start');
+}
+function onFoundDemo(){
+  S.started = true;
+  startGame();
 }
 
 // ------------------------------------------------------------ wiring
-function syncDiff(){
-  document.querySelectorAll('#diff button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.d === S.diff)));
-  $('bestCorner').textContent = `best ${store.get(`best.${S.diff}`, 0)}`;
-}
-$('diff').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  S.diff = b.dataset.d;
-  store.set('diff', S.diff);
-  syncDiff();
-});
+function syncBest(){ $('bestCorner').textContent = `best ${store.get('best', 0)}`; }
 $('scanBtn').addEventListener('click', () => openShop(false));
 $('noScanBtn').addEventListener('click', () => openShop(true));
 $('scanCancel').addEventListener('click', closeShop);
@@ -457,9 +442,11 @@ addEventListener('error', (e) => { $('errText').textContent = String(e.error?.st
 addEventListener('unhandledrejection', (e) => { $('errText').textContent = String(e.reason?.stack || e.reason); $('err').hidden = false; });
 
 AR.onPick(onPick);
+// The stage fills the screen below the order card, leaving a strip for the drag hint.
+AR.setLayoutBounds(() => $('hudstack').getBoundingClientRect().bottom + 6, () => 22 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-b')) || 0));
 $('soundBtn').textContent = `Sound: ${sound.on ? 'on' : 'off'}`;
 $('logo').innerHTML = bowlSvg({ broth: 'miso', noodles: 'thickCurly', toppings: ['chashu', 'corn', 'butter', 'moyashi', 'negi'] }, { steam: true });
-syncDiff();
+syncBest();
 show('start');
 
 // Debug hooks for headless checks.
