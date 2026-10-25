@@ -198,7 +198,7 @@ body.scanning #ar{display:block}
 @keyframes spin{from{transform:translateY(0)}to{transform:translateY(-600px)}}
 .final .bigodo .d.locked{animation:lock .4s var(--anatomy-ease);box-shadow:var(--anatomy-lift),0 0 0 2px var(--anatomy-hi)}
 .final .bigodo .d.locked::after{content:'';position:absolute;left:4px;right:4px;top:50%;height:1px;background:#3b2a1c22}
-.hanko{position:absolute;right:-12px;top:-34px;width:86px;height:86px;opacity:0;transform:scale(2.6) rotate(-30deg)}
+.hanko{position:absolute;right:-4px;top:-30px;width:86px;height:86px;opacity:0;transform:scale(2.6) rotate(-30deg)}
 .hanko.on{animation:hanko .45s cubic-bezier(.2,1.4,.4,1) forwards}
 @keyframes hanko{to{opacity:.92;transform:scale(1) rotate(-12deg)}}
 .newbest{display:inline-block;margin-top:4px;padding:4px 12px;border-radius:999px;background:var(--anatomy-red);color:#fff8ec;font-weight:900;
