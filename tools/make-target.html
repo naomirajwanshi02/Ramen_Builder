@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ramen_Builder target maker</title>
+<style>
+  body{margin:0;padding:16px;background:#ecdfc6;color:#3b2a1c;font:14px/1.5 ui-monospace,Consolas,monospace}
+  img,canvas{max-width:100%;box-shadow:0 0 0 1px #8c7457;display:block;margin:10px 0}
+  button{font:inherit;padding:8px 14px;margin-right:6px}
+  #log{white-space:pre-wrap}
+</style></head>
+<body>
+<p>Draws <b>target.png</b> (the card you scan) and compiles it into <b>targets.mind</b> with MindAR's own compiler.
+Run it from the local dev server (<code>tools/serve.ps1</code>), which accepts the two files back. Add <code>?build=1</code> to do both automatically.</p>
+<button id="draw">1 · Draw target</button><button id="compile">2 · Compile .mind</button>
+<div id="log"></div>
+<div id="out"></div>
+<script type="module">
+import { RECIPES, INGREDIENTS } from '../js/data.js';
+import { ingredientSvg, bowlSvg, japanMapSvg, rng } from '../js/art.js';
+
+const W = 1500, H = 1000;
+const log = (t) => { document.getElementById('log').textContent += t + '\n'; };
+const out = document.getElementById('out');
+
+async function css(){
+  const [a, b] = await Promise.all(['../vendor/anatomy/iso.css', '../css/anatomy-sepia.css'].map((u) => fetch(u).then((r) => r.text())));
+  return a + b;
+}
+const inner = (svg) => svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+const vb = (svg) => svg.match(/viewBox="([^"]+)"/)[1];
+
+async function targetSvg(){
+  const r = rng(2026);
+  const s = [];
+  s.push(`<rect width="${W}" height="${H}" fill="#f1e5cc"/>`);
+  // paper fibres and ink speckle: dense, non-repeating texture is what the tracker locks onto
+  for (let i = 0; i < 2600; i++){
+    const x = r() * W, y = r() * H, a = r() * 6.28, l = 3 + r() * 14;
+    s.push(`<path d="M${x.toFixed(1)} ${y.toFixed(1)}l${(Math.cos(a) * l).toFixed(1)} ${(Math.sin(a) * l).toFixed(1)}" stroke="#8c7457" stroke-opacity="${(0.12 + r() * 0.25).toFixed(2)}" stroke-width="${(0.6 + r()).toFixed(1)}"/>`);
+  }
+  for (let i = 0; i < 900; i++) s.push(`<circle cx="${(r() * W).toFixed(1)}" cy="${(r() * H).toFixed(1)}" r="${(0.6 + r() * 1.8).toFixed(1)}" fill="#3b2a1c" fill-opacity="${(0.2 + r() * 0.5).toFixed(2)}"/>`);
+  // frame and a ruler along two sides (Anatomy plate look), with an off-centre notch
+  s.push(`<rect x="22" y="22" width="${W - 44}" height="${H - 44}" fill="none" stroke="#3b2a1c" stroke-width="4"/>`);
+  s.push(`<rect x="34" y="34" width="${W - 68}" height="${H - 68}" fill="none" stroke="#8c7457" stroke-width="1.5"/>`);
+  for (let x = 40, n = 0; x < W - 40; x += 12, n++){
+    const major = n % 5 === 0;
+    s.push(`<path d="M${x} 34v${major ? 16 : 8}" stroke="#3b2a1c" stroke-width="${major ? 2 : 1}"/>`);
+    if (n % 10 === 0) s.push(`<text x="${x + 3}" y="64" font-family="Consolas,monospace" font-size="13" fill="#5b4630">${n}</text>`);
+  }
+  for (let y = 40, n = 0; y < H - 40; y += 12, n++){
+    const major = n % 5 === 0;
+    s.push(`<path d="M34 ${y}h${major ? 16 : 8}" stroke="#3b2a1c" stroke-width="${major ? 2 : 1}"/>`);
+  }
+  [[44, 44], [W - 44, 44], [44, H - 44], [W - 44, H - 44]].forEach(([x, y]) => s.push(`<circle cx="${x}" cy="${y}" r="5" fill="#d2bd98" stroke="#3b2a1c" stroke-width="1.5"/>`));
+  // title block, top-left
+  s.push(`<text x="78" y="190" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="150" fill="#2b1e13" letter-spacing="4">RAMEN</text>`);
+  s.push(`<text x="84" y="290" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-style="italic" font-size="104" fill="#b5452f">Builder</text>`);
+  s.push(`<text x="84" y="334" font-family="Consolas,monospace" font-size="22" fill="#5b4630" letter-spacing="3">FIG. 01 · SCAN ME TO OPEN THE SHOP · ラーメン屋</text>`);
+  // the bowl, low and to the left
+  const bowl = bowlSvg({ broth: 'miso', noodles: 'thickCurly', toppings: ['chashu', 'corn', 'butter', 'moyashi', 'negi'] });
+  s.push(`<svg x="40" y="350" width="780" height="502" viewBox="${vb(bowl)}">${inner(bowl)}</svg>`);
+  // chopsticks resting across, deliberately skewed
+  s.push(`<g transform="rotate(-17 640 420)"><rect x="380" y="400" width="520" height="13" rx="6" fill="#a8743f" stroke="#3b2a1c" stroke-width="2"/><rect x="390" y="424" width="510" height="11" rx="5" fill="#bb8650" stroke="#3b2a1c" stroke-width="2"/></g>`);
+  // ingredient specimens scattered over the right half, each with a label
+  const picks = ['naruto', 'nori', 'ajitama', 'menma', 'kikurage', 'beniShoga', 'spinach', 'kamaboko', 'shoyu', 'flatWavy', 'garlicChips', 'wakame', 'tonkotsu'];
+  const spots = [[860, 70, 150, -8], [1040, 110, 120, 6], [1190, 60, 130, 12], [880, 260, 120, 3], [1030, 290, 110, -12],
+                 [1180, 250, 140, -4], [850, 440, 130, 9], [1010, 470, 115, -6], [860, 640, 140, 0], [1030, 650, 150, 4],
+                 [1210, 470, 110, 14], [870, 820, 110, -10], [1000, 830, 120, 7]];
+  picks.forEach((id, i) => {
+    const [x, y, size, rot] = spots[i];
+    const svg = ingredientSvg(id);
+    s.push(`<g transform="rotate(${rot} ${x + size / 2} ${y + size / 2})"><svg x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 100 100">${inner(svg)}</svg></g>`);
+    s.push(`<text x="${x + size / 2}" y="${y + size + 6}" text-anchor="middle" font-family="Consolas,monospace" font-size="15" fill="#3b2a1c">${INGREDIENTS[id].name.toUpperCase()}</text>`);
+    s.push(`<text x="${x + size / 2}" y="${y + size + 24}" text-anchor="middle" font-family="'Yu Gothic','Meiryo',sans-serif" font-size="15" fill="#8c7457">${INGREDIENTS[id].jp}</text>`);
+  });
+  // vertical katakana down the right edge
+  ['ラ', 'ー', 'メ', 'ン'].forEach((c, i) => s.push(`<text x="1395" y="${300 + i * 118}" text-anchor="middle" font-family="'Yu Gothic','Meiryo',sans-serif" font-weight="900" font-size="104" fill="#3b2a1c">${c}</text>`));
+  s.push(`<rect x="1336" y="196" width="118" height="${4 * 118 + 30}" fill="none" stroke="#b5452f" stroke-width="3"/>`);
+  // the map of regions, bottom right, plus the list of bowls under the big bowl
+  const map = japanMapSvg(RECIPES, 'sapporo');
+  s.push(`<svg x="1170" y="690" width="260" height="260" viewBox="0 0 100 100">${inner(map)}</svg>`);
+  RECIPES.forEach((rcp, i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    s.push(`<text x="${86 + col * 245}" y="${872 + row * 26}" font-family="Consolas,monospace" font-size="17" fill="${i % 4 ? '#5b4630' : '#b5452f'}">${String(i + 1).padStart(2, '0')} ${rcp.place.split(' · ')[0].toUpperCase()}</text>`);
+  });
+  // a red seal, off-centre
+  s.push(`<g transform="rotate(-14 760 210)"><circle cx="760" cy="210" r="62" fill="none" stroke="#b5452f" stroke-width="7"/><text x="760" y="236" text-anchor="middle" font-family="'Yu Gothic','Meiryo',sans-serif" font-weight="900" font-size="72" fill="#b5452f">麺</text></g>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="iso" data-theme="sepia" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><style>${await css()}</style>${s.join('')}</svg>`;
+}
+
+async function save(name, blob){
+  const res = await fetch(`/__save?name=${encodeURIComponent(name)}`, { method: 'POST', body: blob });
+  log(`${name}: ${res.ok ? 'saved' : 'save failed ' + res.status} (${(blob.size / 1024).toFixed(0)} KB)`);
+}
+
+async function draw(){
+  const svg = await targetSvg();
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  const img = new Image();
+  await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  c.getContext('2d').drawImage(img, 0, 0);
+  const blob = await new Promise((ok) => c.toBlob(ok, 'image/png'));
+  out.innerHTML = '';
+  const shown = new Image(); shown.src = URL.createObjectURL(blob); out.appendChild(shown);
+  await save('target.png', blob);
+}
+
+async function compile(){
+  log('loading MindAR compiler…');
+  await import('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js');
+  const img = new Image();
+  img.src = '../target.png?' + Date.now();
+  await img.decode();
+  const compiler = new window.MINDAR.IMAGE.Compiler();
+  let last = -10;
+  const data = await compiler.compileImageTargets([img], (p) => { if (p - last >= 10){ last = p; log(`compiling ${p.toFixed(0)}%`); } });
+  const t = data[0];
+  log(`detection points: ${t.matchingData.reduce((n, l) => n + l.maximaPoints.length + l.minimaPoints.length, 0)} over ${t.matchingData.length} scales; tracking points: ${t.trackingData.reduce((n, l) => n + l.points.length, 0)}`);
+  const buf = await compiler.exportData();
+  await save('targets.mind', new Blob([buf]));
+  window.__done = true;
+}
+
+document.getElementById('draw').onclick = draw;
+document.getElementById('compile').onclick = compile;
+if (new URLSearchParams(location.search).has('build')) draw().then(compile).catch((e) => { log('ERROR ' + e); window.__done = 'error'; });
+</script>
+</body></html>

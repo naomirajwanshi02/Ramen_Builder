@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ramen_Builder art sheet</title>
+<link rel="stylesheet" href="../vendor/anatomy/iso.css">
+<link rel="stylesheet" href="../css/anatomy-sepia.css">
+<style>
+  body{margin:0;padding:16px;background:var(--anatomy-page);color:var(--anatomy-text);font:13px/1.4 ui-monospace,Consolas,monospace}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+  .grid div{background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);padding:6px;text-align:center}
+  .bowls{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:16px}
+  .bowls div{background:var(--anatomy-card);padding:8px}
+</style></head>
+<body class="iso" data-theme="sepia">
+<div class="bowls" id="bowls"></div>
+<div class="grid" id="grid"></div>
+<script type="module">
+import { INGREDIENTS, RECIPES } from '../js/data.js';
+import { ingredientSvg, bowlSvg } from '../js/art.js';
+const grid = document.getElementById('grid');
+for (const id of Object.keys(INGREDIENTS)) grid.insertAdjacentHTML('beforeend', `<div>${ingredientSvg(id, { size: 90 })}<br>${INGREDIENTS[id].name}</div>`);
+const bowls = document.getElementById('bowls');
+bowls.insertAdjacentHTML('beforeend', `<div>${bowlSvg({ broth: null, noodles: null, toppings: [] })}<br>empty</div>`);
+for (const r of RECIPES) bowls.insertAdjacentHTML('beforeend', `<div>${bowlSvg({ broth: r.broth, noodles: r.noodles, toppings: r.toppings })}<br>${r.name}</div>`);
+</script>
+</body></html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ecdfc6">
+<title>Ramen Builder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%9C%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/anatomy/iso.css">
+<link rel="stylesheet" href="css/anatomy-sepia.css">
+<link rel="stylesheet" href="css/game.css">
+<!-- mind-ar@1.2.5 imports sRGBEncoding, removed in three r162: keep three pinned at 0.160.0. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+  }
+}
+</script>
+</head>
+<body class="iso" data-theme="sepia">
+
+<div id="ar"></div>
+
+<!-- ============ START ============ -->
+<section id="start" class="screen on">
+  <div class="col">
+    <div class="plate hero">
+      <span class="corner tl">Fig. 01</span><span class="corner tr">Ramen Builder</span>
+      <span class="corner bl">12 bowls · 4 islands</span><span class="corner br" id="bestCorner">best 0</span>
+      <div class="logo" id="logo"></div>
+      <h1>Ramen Builder</h1>
+      <div class="kana">ラーメン</div>
+      <p>Scan the card, then build ramen bowls from all over Japan before the timer runs out!</p>
+    </div>
+    <div class="seg" role="group" aria-label="Difficulty" id="diff">
+      <button data-d="easy" aria-pressed="true">Easy<small>age 8+</small></button>
+      <button data-d="normal" aria-pressed="false">Normal<small>age 10+</small></button>
+      <button data-d="hard" aria-pressed="false">Hard<small>age 13+</small></button>
+    </div>
+    <div class="start-actions">
+      <button class="btn red" id="scanBtn">📷 Scan the card to start</button>
+      <div>
+        <button class="link" id="noScanBtn">Play without scanning</button>
+        <a class="link" href="target.png" target="_blank" rel="noopener">Get the card</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCAN ============ -->
+<section id="scan" class="screen">
+  <div class="scan-top"><b>Point your camera at the Ramen Builder card</b><br><span class="cap">Hold it flat · good light · 20–40 cm away</span></div>
+  <div class="guide"><i></i><i></i><i></i><i></i><div class="sweep"></div></div>
+  <div>
+    <div class="status" id="scanStatus">Starting camera…</div>
+    <div class="scan-bottom">
+      <button class="btn ghost" id="scanCancel" style="background:var(--anatomy-card)">Back</button>
+      <button class="btn ghost" id="scanSkip" style="background:var(--anatomy-card)">Play without scanning</button>
+    </div>
+  </div>
+</section>
+<div id="found"><div class="plate hero"><div class="stamp">🍜</div><h1 style="font-size:30px">Card found!</h1><p>Irasshaimase — welcome to the shop!</p></div></div>
+<div id="count"><span></span></div>
+
+<!-- ============ GAME ============ -->
+<section id="game" class="screen">
+  <div class="col">
+    <div class="hud">
+      <div class="plate score" id="scoreBox">
+        <div><div class="cap">Score</div>
+          <div class="odo" id="odo"></div></div>
+        <svg class="lockmark" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="8" rx="1.5" fill="#b5452f"/><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="#b5452f" stroke-width="1.8"/></svg>
+      </div>
+      <div class="mult" id="mult" data-m="1"><div>×1<small>combo 0</small></div></div>
+      <div class="lives" id="lives"></div>
+      <button class="iconbtn" id="pauseBtn" aria-label="Pause">⏸</button>
+    </div>
+
+    <div class="plate order" id="order">
+      <span class="corner tl" id="ordNo">Order 01</span><span class="corner tr" id="ordPlace"></span>
+      <span class="corner bl" id="ordHint">broth → noodles → toppings</span><span class="corner br" id="ordRead">0 / 0</span>
+      <div class="map" id="map"></div>
+      <div class="name" id="ordName"></div>
+      <div class="bowlwrap" id="bowl"></div>
+      <div class="timer" id="timer"><b id="timerBar"></b></div>
+    </div>
+
+    <div class="ticket" id="ticket"></div>
+    <div class="hint" id="hint"></div>
+    <div class="tray" id="tray"></div>
+  </div>
+</section>
+
+<!-- ============ PAUSE ============ -->
+<section id="pause" class="screen">
+  <div class="col">
+    <h2 style="margin:0;font-size:30px;color:var(--anatomy-strong)">Paused</h2>
+    <button class="btn" id="resumeBtn">Keep cooking</button>
+    <button class="btn ghost" id="soundBtn">Sound: on</button>
+    <button class="btn ghost" id="quitBtn">End game</button>
+  </div>
+</section>
+
+<!-- ============ GAME OVER ============ -->
+<section id="over" class="screen">
+  <div class="col">
+    <div class="plate final">
+      <span class="corner tl">Fig. 99</span><span class="corner tr">Shop closed</span>
+      <span class="corner bl" id="overDiff">easy</span><span class="corner br" id="overBest">best 0</span>
+      <svg class="hanko" id="hanko" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="#b5452f" stroke-width="6"/>
+        <circle cx="50" cy="50" r="36" fill="none" stroke="#b5452f" stroke-width="2"/>
+        <text x="50" y="47" text-anchor="middle" font-size="26" font-weight="900" fill="#b5452f" font-family="'Zen Maru Gothic',sans-serif">完</text>
+        <text x="50" y="72" text-anchor="middle" font-size="12" font-weight="900" fill="#b5452f" font-family="ui-monospace,monospace" letter-spacing="1">LOCKED</text>
+      </svg>
+      <h2>Gochisōsama!</h2>
+      <div class="cap" style="margin-top:4px">Final score</div>
+      <div class="bigodo" id="bigodo"></div>
+      <div class="newbest" id="newBest">★ NEW BEST ★</div>
+      <div class="stats">
+        <div><b id="stBowls">0</b><span>bowls</span></div>
+        <div><b id="stCombo">0</b><span>best combo</span></div>
+        <div><b id="stMult">×1</b><span>top multi</span></div>
+      </div>
+      <div class="learned" id="learned"></div>
+      <div class="over-actions">
+        <button class="btn red" id="againBtn">Play again</button>
+        <button class="btn ghost" id="menuBtn">Menu</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="plate toast" id="toast"></div>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>

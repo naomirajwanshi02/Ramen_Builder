@@ -1,0 +1,104 @@
+# 🍜 Ramen Builder — scan-to-play WebAR ramen game
+
+Point your phone at the printed **Ramen Builder card** → the card is recognised →
+the shop opens and the orders start coming. Build regional ramen bowls from all
+over Japan, layer by layer, against the clock. Made for ages 8–15.
+
+**Play:** https://naomirajwanshi02.github.io/Ramen_Builder/
+**Without the card:** https://naomirajwanshi02.github.io/Ramen_Builder/?demo=1
+**The card to scan:** [`target.png`](target.png)
+
+## How to play
+
+1. Open the link on your phone, pick **Easy (8+)**, **Normal (10+)** or **Hard (13+)**.
+2. Tap **Scan the card to start**, allow the camera, and point it at the card
+   (on paper, or on another screen). When it's recognised the game starts.
+3. An **order** comes in, such as *Sapporo Miso Ramen*. The bowl is at the top and the
+   ingredients are underneath. Build it the way a ramen cook does:
+   **broth → noodles → toppings** (toppings in any order).
+4. When every ingredient is in, the bowl is **served automatically** and you
+   learn a fact about that region. Then the next order arrives.
+
+| Thing | How it works |
+|---|---|
+| **Timer** | Each order has its own clock, scaled to its number of ingredients. It **gets shorter with every bowl you serve**. The bar turns red and ticks in the last 30%. |
+| **Lives** | 3 bowls. An order that runs out of time costs one. The game is endless: it ends when all 3 are gone. |
+| **Mistakes** | A wrong ingredient or the wrong layer (noodles before broth) takes 1.5–2 s off the clock and breaks your combo. It doesn't cost a life. |
+| **Combo / multiplier** | Every correct tap adds 1 to the combo. Every 4 in a row raise the multiplier: ×2, ×3, ×4, up to ×5. A mistake resets it to ×1. |
+| **Score** | 10 × multiplier per ingredient. Serving a bowl adds (100 + up to 150 speed bonus + 50 for a perfect bowl) × multiplier. Points fly into the counter, and the counter rolls and **locks** with a click. |
+| **Game over** | The final score's digits spin and lock one at a time, then a 完 (finished) hanko seal stamps it. Your best score for each difficulty is saved on your phone. |
+| **Difficulty ramp** | Orders start with a few toppings and grow to the full regional recipe. Decoy ingredients go from 2 up to 8. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. |
+
+## The 12 regional bowls
+
+Researched from regional-ramen guides (Michelin Guide, Japan Travel, and others). Each
+bowl uses its region's broth, noodle and signature toppings:
+
+| Region | Broth | Noodles | Toppings |
+|---|---|---|---|
+| Sapporo · Hokkaido | Miso | thick curly | corn, butter, bean sprouts, chashu |
+| Hakodate · Hokkaido | Shio (salt) | thin straight | chashu, menma, green onion, wakame |
+| Kitakata · Fukushima | Shoyu | flat wavy | chashu, menma, green onion, naruto |
+| Tokyo | Shoyu | medium curly | chashu, menma, nori, naruto, green onion |
+| Yokohama Iekei · Kanagawa | Tonkotsu-shoyu | thick straight | chashu, spinach, nori |
+| Toyama Black | Black shoyu | thick straight | chashu, menma, green onion, black pepper |
+| Kyoto | Shoyu | thin straight | back fat, chashu, green onion |
+| Wakayama | Tonkotsu-shoyu | thin straight | chashu, kamaboko, menma, green onion |
+| Tokushima · Shikoku | Tonkotsu-shoyu | thin straight | sweet pork belly, raw egg, bean sprouts, green onion |
+| Onomichi · Hiroshima | Shoyu | flat wavy | back fat, chashu, menma, green onion |
+| Hakata · Fukuoka | Tonkotsu | thin straight | chashu, kikurage, pickled ginger, sesame, green onion |
+| Kumamoto | Tonkotsu | thick straight | black garlic oil, garlic chips, kikurage, chashu, ajitama |
+
+There are 32 ingredients in all (6 broths, 5 noodles, 21 toppings), each drawn in code.
+The data lives in [`js/data.js`](js/data.js).
+
+## Printing the card
+
+- Print `target.png` about **18 cm wide** (it's 3:2, so about 18 × 12 cm), on **matte** paper.
+- Don't crop it. Lay it flat in even light, and hold the phone 20–40 cm away.
+- Showing it on a laptop or tablet screen also works.
+
+The compiled target scores **3,847 detection points over 11 scales and 58 tracking
+points** (the sushi-ar card scores 1,877 / 52). MindAR's own detector was checked
+against a rotated, skewed and darkened copy of the card (match found) and against the
+sushi card (correctly no match).
+
+## Design: the Anatomy kit in a sepia theme
+
+The look comes from the [Anatomy](https://github.com/wheresryan22/anatomy) skill (MIT):
+
+- The **ramen bowl is an Anatomy turned solid**. One meridian profile goes through
+  `lathe.mjs` → `solidOf`, then `iso-kit.mjs` → `solidSvg`, which gives four-tone
+  shading, a halo, crease lines and a raimon border on the front half only. The kit
+  is in [`vendor/anatomy/`](vendor/anatomy) and runs in the browser as plain ES modules.
+- **Plates** use Anatomy's card style: a mono `Fig. 01` label top-left, a title
+  top-right, a hint bottom-left, a live readout bottom-right, and a lifted shadow.
+- **Sepia theme:** Anatomy ships only dark and light themes. [`css/anatomy-sepia.css`](css/anatomy-sepia.css)
+  adds a third set of the same `--anatomy-*` tokens in warm paper and walnut ink.
+  Every kit class then renders in sepia without any changes to the kit.
+
+## Files
+
+| File | What it is |
+|---|---|
+| `index.html` | The page: start, scan, game, pause and game-over screens. |
+| `js/game.js` | Game loop, orders, timer, combos, multiplier, scoring, score lock, sound (WebAudio, no files). |
+| `js/data.js` | Ingredients, regional recipes, difficulty settings. |
+| `js/art.js` | Ingredient drawings, the Anatomy bowl, the Japan map. |
+| `js/scan.js` | MindAR image tracking. Starts the game when the card is recognised. |
+| `css/` | The sepia theme and game layout. |
+| `target.png` / `targets.mind` | The card and its compiled MindAR data. |
+| `tools/make-target.html` | Redraws `target.png` and compiles `targets.mind` in the browser (`?build=1`). |
+| `tools/art-sheet.html` | Every ingredient and every regional bowl on one page. |
+| `tools/serve.ps1` | Local HTTPS-free dev server (localhost counts as secure for the camera). |
+
+## Run locally
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools/serve.ps1
+```
+
+Then open http://localhost:8123/?demo=1. `?target=./other.mind` swaps the target.
+
+Version pins: `mind-ar@1.2.5` needs `three@0.160.0`, because three r162 removed `sRGBEncoding`.
+These are the same pins as sushi-ar.
