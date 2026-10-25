@@ -11,7 +11,7 @@ over Japan, layer by layer, against the clock. Made for ages 8â€“15.
 ## How to play
 
 1. Open the link on your phone. It goes straight to the camera viewfinder. Allow the camera and point it at the card
-   (on paper, or on another screen). The game starts the moment the card is recognised.
+   (on paper, or on another screen). The game starts the moment the card is recognised, with a 4-step how-to-play tour that points at the order, the bowl, the ingredients and the score. The clock starts when you tap **Let's cook!**
 2. When the card is recognised, the ramen shop opens over the live camera. **From then on the
    card isn't needed**: you can move the phone freely. Tilt the phone or drag to look around the 3D shop.
 3. An **order** comes in, such as *Sapporo Miso Ramen*, with a big ingredient ticket at the top.

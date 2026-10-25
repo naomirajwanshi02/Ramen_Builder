@@ -110,6 +110,11 @@ const C = { porcelain: '#f6ecd8', inner: '#efe3cb', red: '#b5452f', noodle: '#ec
 const PORCELAIN = shared(mat(C.porcelain, { side: THREE.DoubleSide }));
 const GLAZE_RED = shared(mat(C.red));
 const NOODLE = shared(mat(C.noodle));
+const NOODLE_INK = shared(new THREE.ShaderMaterial({
+  vertexShader: VS, fragmentShader: FS, side: THREE.BackSide,
+  uniforms: { uColor: { value: srgb('#a47c3c') }, uOpacity: { value: 1 }, uMap: { value: null }, uHasMap: { value: 0 },
+    uAlphaTest: { value: 0 }, uFlat: { value: 1 }, uInk: { value: 0.0006 } },
+}));
 
 // ------------------------------------------------------------------ icon textures (raw sRGB)
 const iconCache = new Map();
@@ -189,37 +194,57 @@ function brothMesh(id, scale = 1){
   return g;
 }
 
-// Noodles: real tubes in a low mound, shaped by the regional style.
-function noodleMesh(id, radius){
+/* Noodles, built the way they sit in a real bowl: a folded bed of strands, two or
+   three layers deep, each layer at a slightly different angle. Strands rise into a
+   soft mound in the middle and their ends dip under the broth (`dip`), so they look
+   like they come up out of the soup instead of stopping in mid-air.
+   - straight / flat: long strands with a gentle S-wave (flat ones are wide ribbons)
+   - curly (chijire): short, tight kinks along a wandering path — the crinkle of
+     Sapporo and Tokyo noodles. */
+function noodleMesh(id, radius, { dip = true } = {}){
   const n = INGREDIENTS[id];
-  const tube = { 1.8: 0.0012, 3.2: 0.0017, 4.6: 0.0023, 5.2: 0.0024, 6.5: 0.0023 }[n.weight] || 0.0018;
-  const mound = (x, z) => 0.003 + 0.007 * Math.max(0, 1 - (x * x + z * z) / (radius * radius));
+  const tube = { 1.8: 0.0011, 3.2: 0.0016, 4.6: 0.0021, 5.2: 0.0022, 6.5: 0.0021 }[n.weight] || 0.0017;
+  const R = radius;
+  const mound = (x, z) => 0.0025 + 0.009 * Math.max(0, 1 - (x * x + z * z) / (R * R)) ** 0.8;
+  const sink = (t) => (dip ? -0.009 * Math.max(0, (Math.abs(t) - 0.72) / 0.28) ** 1.6 : 0); // ends go under the soup
   const geos = [];
-  const add = (points) => {
-    if (points.length < 3) return;
-    geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), Math.max(12, points.length * 3), tube, 5, false));
-  };
+  const add = (pts) => { if (pts.length >= 4) geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 4, tube, 6, false)); };
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
   if (n.style === 'straight' || n.style === 'flat'){
-    const gap = tube * (n.style === 'flat' ? 2.7 : 2.4);
-    for (let z = -radius * 0.92; z <= radius * 0.92; z += gap){
-      const half = Math.sqrt(Math.max(0, radius * radius - z * z)) * 0.95;
-      const pts = [];
-      for (let i = 0; i <= 10; i++){
-        const x = -half + (2 * half * i) / 10;
-        const wz = n.style === 'flat' ? Math.sin(i * 1.4 + z * 300) * tube * 1.4 : (Math.random() - 0.5) * tube * 0.6;
-        pts.push(new THREE.Vector3(x, mound(x, z) + Math.random() * 0.0012, z + wz));
+    const flat = n.style === 'flat';
+    const layers = 3, gap = tube * (flat ? 2.9 : 2.3) * layers;
+    for (let L = 0; L < layers; L++){
+      const ang = (L - 1) * 0.1 + rnd(-0.04, 0.04);
+      const dir = [Math.cos(ang), Math.sin(ang)], perp = [-dir[1], dir[0]];
+      for (let d = -R * 0.95 + (L * gap) / layers; d <= R * 0.95; d += gap){
+        const half = Math.sqrt(Math.max(0, R * R - d * d)) * rnd(1.05, 1.25);
+        const ph = rnd(0, TAU), waves = rnd(1.2, 2.2), amp = tube * (flat ? 1.6 : 0.9);
+        const pts = [];
+        for (let i = 0; i <= 16; i++){
+          const t = i / 8 - 1;
+          const off = d + Math.sin(t * Math.PI * waves + ph) * amp;
+          const x = dir[0] * t * half + perp[0] * off, z = dir[1] * t * half + perp[1] * off;
+          pts.push(V(x, mound(x, z) + L * tube * 1.5 + rnd(0, 0.0008) + sink(t), z));
+        }
+        add(pts);
       }
-      add(pts);
     }
   } else {
-    const strands = Math.round((radius * radius) / (tube * 0.06) + 4);
+    const strands = Math.round((R * R) / (tube * tube) * 0.075 + 6);
     for (let s = 0; s < strands; s++){
+      let a = rnd(0, TAU);
+      const r0 = Math.sqrt(Math.random()) * R * 0.75;
+      let x = Math.cos(a) * r0 - Math.cos(a) * R * 0.7, z = Math.sin(a) * r0 - Math.sin(a) * R * 0.7;
+      const steps = 34, len = R * rnd(1.5, 2.1), step = len / steps, kink = rnd(1.6, 2.4), ph = rnd(0, TAU);
       const pts = [];
-      const z0 = (Math.random() * 2 - 1) * radius * 0.85, amp = tube * (2 + Math.random()), ph = Math.random() * TAU;
-      for (let t = 0, x = -radius; x < radius; t++, x += tube * 1.3){
-        const px = x + Math.cos(t * 0.9 + ph) * amp, pz = z0 + Math.sin(t * 0.9 + ph) * amp;
-        if (px * px + pz * pz > radius * radius){ if (pts.length > 2) break; else continue; }
-        pts.push(new THREE.Vector3(px, mound(px, pz) + Math.random() * 0.0015, pz));
+      for (let i = 0; i <= steps; i++){
+        const t = (i / steps) * 2 - 1;
+        a += rnd(-0.12, 0.12);                       // the path wanders...
+        x += Math.cos(a) * step; z += Math.sin(a) * step;
+        const k = Math.sin(i * kink + ph) * tube * 1.5; // ...and crinkles side to side
+        const px = x - Math.sin(a) * k, pz = z + Math.cos(a) * k;
+        if (px * px + pz * pz > (R * 1.15) ** 2) continue;
+        pts.push(V(px, mound(px, pz) + rnd(0, 0.003) + sink(t), pz));
       }
       add(pts);
     }
@@ -227,7 +252,11 @@ function noodleMesh(id, radius){
   const geo = mergeGeometries(geos);
   geos.forEach((g) => g.dispose());
   const mesh = new THREE.Mesh(geo, NOODLE);
-  if (n.style === 'flat') mesh.scale.y = 0.5;
+  // a fine, warm outline per strand, so the strands read separately like the Anatomy drawings
+  const edge = new THREE.Mesh(geo, NOODLE_INK);
+  edge.userData.hull = true; edge.renderOrder = -1;
+  mesh.add(edge);
+  if (n.style === 'flat') mesh.scale.y = 0.55;
   return mesh;
 }
 
@@ -259,9 +288,44 @@ function decal(id, size, { layers = 3, step = 0.0013 } = {}){
   }
   return g;
 }
-// A disc whose top is the icon and whose side is the icon's edge colour.
+/* Solid, fully coloured faces for the round toppings. The icons have a transparent
+   margin, which showed through on the 3D discs, so the cut face is painted edge to
+   edge here with the same colours as the icon. */
+const capCache = new Map();
+function capTexture(id){
+  if (capCache.has(id)) return capCache.get(id);
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const disc = (r, fill) => { g.beginPath(); g.arc(128, 128, r, 0, TAU); g.fillStyle = fill; g.fill(); };
+  if (id === 'chashu'){
+    g.fillStyle = '#7a3e22'; g.fillRect(0, 0, 256, 256);   // seared edge
+    disc(108, '#d59c78');                                  // pink meat
+    g.lineCap = 'round';
+    g.strokeStyle = '#f3d9bf'; g.lineWidth = 14;           // marbled fat swirl
+    g.beginPath(); g.moveTo(60, 120); g.bezierCurveTo(80, 50, 170, 60, 185, 115); g.bezierCurveTo(200, 170, 130, 200, 105, 160); g.bezierCurveTo(90, 135, 125, 120, 140, 132); g.stroke();
+    g.strokeStyle = '#a4603e'; g.lineWidth = 4; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(100, 80, 40, 14, -0.3, 0, TAU); g.fill();
+  } else if (id === 'naruto'){
+    g.fillStyle = '#fbf4e8'; g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = '#e0708a'; g.lineWidth = 16; g.lineCap = 'round'; g.beginPath();
+    for (let t = 0; t < 3.1 * TAU; t += 0.1){ const r = 8 + t * 5.2; const x = 128 + Math.cos(t) * r, y = 128 + Math.sin(t) * r; t ? g.lineTo(x, y) : g.moveTo(x, y); }
+    g.stroke();
+  } else if (id === 'ajitama'){
+    g.fillStyle = '#f8eedb'; g.fillRect(0, 0, 256, 256);   // egg white
+    disc(66, '#e4932a');                                    // jammy yolk rim
+    disc(44, '#f6bc4c');                                    // soft centre
+    g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(108, 104, 16, 9, -0.4, 0, TAU); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace;
+  t.anisotropy = 4;
+  capCache.set(id, t);
+  return t;
+}
+// A disc whose top is the ingredient's cut face and whose side is its edge colour.
 function capDisc(id, r, h, side, { sz = 1 } = {}){
-  const sideM = mat(side), topM = mat('#ffffff', { map: iconCache.get(id), flat: true });
+  const sideM = mat(side), topM = mat('#ffffff', { map: capTexture(id), flat: true });
   const c = solid(new THREE.CylinderGeometry(r, r * 1.02, h, 40), [sideM, topM, sideM]);
   c.position.y = h / 2;
   c.scale.set(1, 1, sz);
@@ -341,7 +405,7 @@ function tokenModel(id){
     model.add(bowlMesh(s));
     const br = brothMesh(id, s); br.position.y = BOWL.brothY * s; model.add(br);
   } else if (ing.layer === 'noodles'){
-    model = noodleMesh(id, 0.03);
+    model = noodleMesh(id, 0.03, { dip: false });
   } else {
     model = toppingMesh(id);
     if (id === 'nori') model.position.z = 0.008;
@@ -483,7 +547,7 @@ function addToBowl(id){
     tw(0.5, EASE.out, (k) => { br.position.y = -0.03 * (1 - k); br.scale.setScalar(0.3 + 0.7 * k); });
     R.steamOn = true;
   } else if (ing.layer === 'noodles'){
-    const nd = noodleMesh(id, BOWL.brothR * 0.62);
+    const nd = noodleMesh(id, BOWL.brothR * 0.7);
     R.contents.add(nd);
     const sy = nd.scale.y;
     tw(0.45, EASE.back, (k) => { nd.position.y = (1 - k) * 0.05; nd.scale.y = Math.max(0.05, k) * sy; });
@@ -600,6 +664,20 @@ function sparkle(at, color, n = 10){
 export const bowlScreen = () => project(R.bowlSpot, BOWL.h + 0.04);
 export const tokenScreen = (id) => { const t = R.tokens.find((x) => x.id === id); return t ? project(t.node, 0.06) : bowlScreen(); };
 export function onPick(cb){ R.pick = cb; }
+// Screen rectangles for the how-to-play spotlight.
+export function bowlRect(){
+  const c = project(R.bowlSpot, BOWL.h * 0.45);
+  const w = BOWL.r * 2.7 * R.zoom, h = (BOWL.r * 2.7 * 0.5 + BOWL.h) * R.zoom;
+  return { left: c.x - w / 2, top: c.y - h * 0.6, width: w, height: h };
+}
+export function tokensRect(){
+  const pts = R.tokens.filter((t) => t.alive).flatMap((t) => [project(t.node, 0.07 * t.scale), { x: project(t.node).x, y: project(t.node).y + 0.05 * t.scale * R.zoom }]);
+  if (!pts.length) return { left: 0, top: innerHeight / 2, width: innerWidth, height: innerHeight / 2 };
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  const pad = 0.05 * R.zoom * (R.tokens[0]?.scale || 1);
+  const left = Math.max(4, Math.min(...xs) - pad), right = Math.min(innerWidth - 4, Math.max(...xs) + pad);
+  return { left, top: Math.min(...ys) - 6, width: right - left, height: Math.max(...ys) - Math.min(...ys) + 14 };
+}
 export function setLayoutBounds(top, bottom){ R.layoutTop = top; R.layoutBottom = bottom; }
 
 // ------------------------------------------------------------------ input: tap a token, drag to turn the view

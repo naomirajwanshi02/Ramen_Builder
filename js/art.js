@@ -45,44 +45,53 @@ const shape = (tag, attrs, fill, w = 1.8) =>
 
 // ------------------------------------------------------------------ noodles
 // Strands inside an ellipse (cx, cy, rx, ry). Same generator for the tile and the bowl.
+// Same idea as the 3D noodles (stage.js): a folded bed of strands in layers, each
+// strand with a warm outline, its colour, and a thin highlight along its top.
+const NOODLE_EDGE = '#a47c3c', NOODLE_SHINE = '#fff4cc';
 export function noodleStrands(style, weight, box, seed = 7, scale = 1){
   const r = rng(seed);
   const { cx, cy, rx, ry } = box;
-  const w = weight * scale;
+  const w = weight * scale * 0.85;
   const out = [];
   const inside = (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
   if (style === 'straight' || style === 'flat'){
-    const gap = Math.max(w * 1.15, (style === 'flat' ? 2.1 : 1.35) * w + 1.2 * scale);
-    const tilt = -0.18;
-    for (let y = cy - ry * 0.95; y <= cy + ry * 0.95; y += gap){
-      const half = rx * Math.sqrt(Math.max(0, 1 - ((y - cy) / ry) ** 2)) * 0.96;
-      if (half < w * 2) continue;
-      const p = [];
-      const n = 14;
-      for (let i = 0; i <= n; i++){
-        const x = cx - half + (2 * half * i) / n;
-        const wave = style === 'flat' ? Math.sin(i * 1.3 + y * 0.3) * w * 0.55 : Math.sin(i * 0.6 + r() * 6) * w * 0.12;
-        p.push([x, y + (x - cx) * tilt * (ry / rx) + wave]);
+    const flat = style === 'flat';
+    const gap = w * (flat ? 1.5 : 1.25) + 0.5 * scale;
+    for (const tilt of [-0.2, -0.12, -0.04]){ // three layers, each folded at a slightly different angle
+      for (let y = cy - ry * 1.05; y <= cy + ry * 1.05; y += gap * 2.2){
+        const yy = y + r() * gap;
+        const ph = r() * TAU, amp = w * (flat ? 0.9 : 0.35);
+        const p = [];
+        for (let i = 0; i <= 18; i++){
+          const x = cx - rx + (2 * rx * i) / 18;
+          const py = yy + (x - cx) * tilt * (ry / rx) + Math.sin((i / 18) * Math.PI * 2 + ph) * amp;
+          if (inside(x, py)) p.push([x, py]);
+        }
+        if (p.length > 2) out.push({ d: smoothPath(p), w: flat ? w * 1.35 : w });
       }
-      out.push({ d: smoothPath(p.filter(([x, yy]) => inside(x, yy))), w: style === 'flat' ? w * 1.15 : w });
     }
   } else {
-    const strands = Math.round((rx * ry) / (w * 26 * scale + 40 * scale) + 4);
+    // chijire (crinkly): each strand wanders across the nest with tight side-to-side kinks
+    const strands = Math.round((rx * ry) / (w * w * 3.2) + 6);
     for (let s = 0; s < strands; s++){
+      let a = r() * TAU;
+      let x = cx + (r() * 2 - 1) * rx * 0.7, y = cy + (r() * 2 - 1) * ry * 0.7;
+      const step = w * 0.8 + 0.4 * scale, kink = 1.5 + r() * 0.9, ph = r() * TAU;
       const p = [];
-      let x = cx - rx * 0.9, y = cy + (r() * 2 - 1) * ry * 0.85;
-      const amp = w * (1.3 + r() * 0.8), freq = 0.42 + r() * 0.2, ph = r() * TAU;
-      for (let t = 0; x < cx + rx; t++){
-        const px = x + Math.cos(t * freq * 2 + ph) * amp * 0.7;
-        const py = y + Math.sin(t * freq * 2 + ph) * amp;
-        if (inside(px, py)) p.push([px, py]); else if (p.length > 2) break;
-        x += w * 0.85 + 0.6 * scale;
-        y += Math.sin(t * 0.2 + s) * 0.4 * scale;
+      for (let i = 0; i < 40; i++){
+        a += (r() - 0.5) * 0.35;
+        x += Math.cos(a) * step; y += Math.sin(a) * step * (ry / rx);
+        const k = Math.sin(i * kink + ph) * w * 0.9;
+        const px = x - Math.sin(a) * k, py = y + Math.cos(a) * k * (ry / rx);
+        if (inside(px, py)) p.push([px, py]); else if (p.length > 3) break;
       }
-      if (p.length > 2) out.push({ d: smoothPath(p), w });
+      if (p.length > 3) out.push({ d: smoothPath(p), w });
     }
   }
-  return out.map(({ d, w: ww }) => inked(d, NOODLE, ww)).join('');
+  return out.map(({ d, w: ww }) =>
+    `<path d="${d}" fill="none" stroke="${NOODLE_EDGE}" stroke-width="${f1(ww + 1.1 * scale)}" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="none" stroke="${NOODLE}" stroke-width="${f1(ww)}" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="none" stroke="${NOODLE_SHINE}" stroke-width="${f1(Math.max(0.5, ww * 0.28))}" stroke-linecap="round" transform="translate(0 ${f1(-ww * 0.22)})" opacity=".8"/>`).join('');
 }
 
 // ------------------------------------------------------------------ tiles

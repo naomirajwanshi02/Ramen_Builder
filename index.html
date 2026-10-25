@@ -56,13 +56,12 @@
     </div>
     <div class="mult" id="mult" data-m="1"><div>×1<small>combo 0</small></div></div>
     <div class="plate lives" id="lives"></div>
-    <button class="iconbtn" id="pauseBtn" aria-label="Pause">❚❚</button>
+    <button class="iconbtn" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg></button>
   </div>
 
   <div class="plate ordercard" id="order">
     <span class="corner tl" id="ordNo">Order 01</span><span class="corner tr" id="ordPlace"></span>
     <div class="ordmain">
-      <div class="map" id="map"></div>
       <div class="ordtext">
         <div class="name" id="ordName"></div>
         <div class="hint" id="hint"></div>
@@ -106,7 +105,7 @@
       <div class="newbest" id="newBest">★ NEW BEST ★</div>
       <div class="stats">
         <div><b id="stBowls">0</b><span>bowls</span></div>
-        <div><b id="stCombo">0</b><span>best combo</span></div>
+        <div><b id="stCombo">0</b><span>perfect streak</span></div>
         <div><b id="stMult">×1</b><span>top multi</span></div>
       </div>
       <div class="learned" id="learned"></div>
@@ -117,6 +116,20 @@
     </div>
   </div>
 </section>
+
+<!-- ============ HOW TO PLAY: a short guided tour before the first order starts ============ -->
+<div id="howto" class="overlay">
+  <div class="spot" id="spot"></div>
+  <div class="plate coach" id="coach">
+    <span class="corner tl" id="coachStep">How to play · 1/4</span>
+    <div class="coach-title" id="coachTitle"></div>
+    <div class="coach-text" id="coachText"></div>
+    <div class="coach-row">
+      <button class="link" id="coachSkip">Skip</button>
+      <button class="btn red small" id="coachNext">Next</button>
+    </div>
+  </div>
+</div>
 
 <div class="plate toast" id="toast"></div>
 <div class="plate errbox" id="err" hidden><b>Something went wrong</b><pre id="errText"></pre><button class="btn small" id="errBtn">Start over</button></div>

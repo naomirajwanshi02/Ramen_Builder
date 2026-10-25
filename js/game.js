@@ -1,6 +1,6 @@
 // Ramen_Builder — game rules, scoring and HUD. The 3D stage lives in stage.js.
 import { INGREDIENTS, RECIPES, PACE, LAYER_NAME, SHORT } from './data.js';
-import { ingredientSvg, japanMapSvg } from './art.js';
+import { ingredientSvg } from './art.js';
 import * as AR from './stage.js';
 
 const $ = (id) => document.getElementById(id);
@@ -83,7 +83,7 @@ function addScore(points, { lock = false } = {}){
 function renderMult(bumped){
   const m = $('mult');
   m.dataset.m = S.mult;
-  m.innerHTML = `<div>×${S.mult}<small>combo ${S.combo}</small></div>`;
+  m.innerHTML = `<div>×${S.mult}<small>${S.combo ? `${S.combo} perfect` : 'combo'}</small></div>`;
   if (bumped){ m.classList.remove('bump'); void m.offsetWidth; m.classList.add('bump'); }
 }
 const LIFE = `<svg viewBox="0 0 24 24"><path d="M2 10h20q-1 10-10 11Q3 20 2 10Z" fill="#f6eddb" stroke="#3b2a1c" stroke-width="1.5"/><path d="M4 10q8 3 16 0" fill="none" stroke="#b5452f" stroke-width="1.2"/><path d="M8 7q-1-3 1-5M12 7q-1-3 1-5M16 7q-1-3 1-5" fill="none" stroke="#8c7457" stroke-width="1.2" stroke-linecap="round"/></svg>`;
@@ -149,7 +149,6 @@ function newOrder(){
   $('ordNo').textContent = `Order ${String(S.served + 1).padStart(2, '0')}`;
   $('ordPlace').textContent = r.place;
   $('ordName').textContent = r.name;
-  $('map').innerHTML = japanMapSvg(RECIPES, r.id);
   AR.newBowl();
   AR.setTokens(shuffle([...S.need, ...decoys]));
   AR.hint(null);
@@ -195,32 +194,29 @@ function onPick(id){
   else S.bowl.toppings.push(id);
   S.idle = 0;
   AR.hint(null);
-  S.combo++;
-  S.maxCombo = Math.max(S.maxCombo, S.combo);
-  const m = Math.min(5, 1 + Math.floor(S.combo / 4));
-  const bumped = m > S.mult;
-  S.mult = m;
-  S.maxMult = Math.max(S.maxMult, m);
   sound.good(S.bowl.toppings.length + (S.bowl.noodles ? 1 : 0));
   buzz(12);
-  tagAt(at, `+${10 * S.mult} ${SHORT[id]}`, 'good');
-  if (bumped){ sound.combo(m); popup(`${S.combo} COMBO!  ×${m}`, 'big', 0.62); }
-  else if (S.mult === 5 && S.combo % 5 === 0) popup(`${S.combo} COMBO!`, 'big', 0.62);
-  addScore(10 * S.mult);
-  renderMult(bumped);
+  tagAt(at, `+10 ${SHORT[id]}`, 'good');
+  addScore(10);
   renderTicket();
   if (S.need.every(have)){ S.phase = 'serving'; setTimeout(serve, 650); }
 }
 
-function mistake(at, message){
-  S.mistakes++;
-  const lost = S.combo;
+/* Combo, kept simple for kids: every PERFECT bowl in a row (no wrong taps) adds one
+   to the multiplier, up to ×5. One mistake, or a bowl that goes cold, resets it to ×1.
+   The multiplier applies to the bowl's points when it's served. */
+function breakCombo(){
+  const had = S.combo;
   S.combo = 0; S.mult = 1;
   renderMult(false);
+  if (had > 0) popup('Combo lost', 'mid', 0.3);
+}
+function mistake(at, message){
+  S.mistakes++;
+  breakCombo();
   S.timeLeft = Math.max(0.01, S.timeLeft - 1.5);
   sound.bad(); buzz(80);
   tagAt(at, `✕ ${message}`, 'bad');
-  if (lost >= 4) popup('Combo lost', 'mid', 0.3);
 }
 
 // ------------------------------------------------------------ serve / timeout
@@ -241,14 +237,25 @@ function flyPoints(points, done){
 }
 
 async function serve(){
-  const frac = S.timeLeft / S.timeMax;
-  const perfect = S.mistakes === 0 ? 50 : 0;
-  const total = (100 + Math.round(150 * frac) + perfect) * S.mult;
+  const frac = Math.max(0, S.timeLeft / S.timeMax);
+  const perfect = S.mistakes === 0;
+  // every part is a multiple of 10: 100 for the bowl, up to 150 for speed, 50 if perfect
+  const total = (100 + Math.round(15 * frac) * 10 + (perfect ? 50 : 0)) * S.mult;
   S.served++;
   S.learned.add(S.recipe.id);
   sound.serve(); buzz([20, 40, 20]);
   popup(perfect ? 'Perfect bowl!' : 'Order up!', 'big', 0.3);
   flyPoints(total, () => addScore(total, { lock: true }));
+  if (perfect){
+    S.combo++;
+    S.maxCombo = Math.max(S.maxCombo, S.combo);
+    const m = Math.min(5, 1 + S.combo);
+    const bumped = m > S.mult;
+    S.mult = m;
+    S.maxMult = Math.max(S.maxMult, m);
+    renderMult(bumped);
+    if (bumped) setTimeout(() => { sound.combo(m); popup(`${S.combo} perfect in a row!  ×${m}`, 'big', 0.62); }, 500);
+  }
   toast(`<b>${S.recipe.name}</b> — ${S.recipe.fact}`);
   AR.clearTokens();
   await AR.serveBowl();
@@ -258,8 +265,8 @@ async function serve(){
 async function timeout(){
   S.phase = 'serving';
   S.lives--;
-  S.combo = 0; S.mult = 1;
-  renderMult(false); renderLives();
+  breakCombo();
+  renderLives();
   sound.lose(); buzz([60, 40, 60]);
   popup('Too slow! The ramen got cold', 'mid', 0.3);
   AR.clearTokens();
@@ -302,13 +309,65 @@ function resetGame(){
 }
 
 // No countdown: the first order is on the counter the moment the shop opens.
-function startGame(){
+function startGame({ tour = false } = {}){
   resetGame();
   show(null);
   overlay('hud', true);
   $('dragHint').style.opacity = '';
   newOrder();
+  if (tour){ S.phase = 'intro'; setTimeout(showTour, 1100); } // the clock waits until the tour is done
 }
+
+// ------------------------------------------------------------ how to play
+// A short spotlight tour over the real first order, so every part is pointed at where it is.
+const TOUR = [
+  { title: '📋 Your order', text: 'This is the ramen to cook. Add the ingredients <b>left to right</b>; each one gets a ✓. Finish before the <b>timer bar</b> runs out!',
+    rect: () => $('order').getBoundingClientRect() },
+  { title: '🍜 Your bowl', text: 'Everything you pick jumps into this bowl. When it\'s full, it\'s <b>served automatically</b> and the next order comes in.',
+    rect: () => AR.bowlRect() },
+  { title: '👆 The ingredients', text: 'Tap a plate to add it. Always <b>broth first</b>, then <b>noodles</b>, then the <b>toppings</b>. A wrong tap costs time!',
+    rect: () => AR.tokensRect() },
+  { title: '⭐ Score, combo & lives', text: 'Every <b>perfect bowl</b> in a row raises your multiplier, up to <b>×5</b>. A bowl that goes cold costs one of your <b>3 lives</b>. It gets faster as you go!',
+    rect: () => document.querySelector('.hud.top').getBoundingClientRect() },
+];
+let tourStep = 0;
+function showTour(){
+  if (S.phase !== 'intro') return;
+  tourStep = 0;
+  overlay('howto', true);
+  renderTour();
+}
+function renderTour(){
+  const step = TOUR[tourStep];
+  const r = step.rect();
+  const pad = 6;
+  Object.assign($('spot').style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+  $('coachStep').textContent = `How to play · ${tourStep + 1}/${TOUR.length}`;
+  $('coachTitle').textContent = step.title;
+  $('coachText').innerHTML = step.text;
+  $('coachNext').textContent = tourStep === TOUR.length - 1 ? "Let's cook!" : 'Next';
+  // put the card on whichever side of the spotlight has more room
+  const coach = $('coach');
+  const below = innerHeight - (r.top + r.height);
+  const h = coach.offsetHeight || 170;
+  coach.style.top = below > r.top ? `${Math.min(innerHeight - h - 12, r.top + r.height + 16)}px` : `${Math.max(12, r.top - h - 16)}px`;
+  coach.style.animation = 'none'; void coach.offsetWidth; coach.style.animation = '';
+}
+function endTour(){
+  overlay('howto', false);
+  if (S.phase !== 'intro') return;
+  S.timeLeft = S.timeMax;
+  S.idle = 0;
+  S.phase = 'play';
+  sound.unlock();
+  popup('いただきます!', 'big', 0.4);
+}
+$('coachNext').addEventListener('click', () => {
+  sound.unlock();
+  if (tourStep < TOUR.length - 1){ tourStep++; renderTour(); } else endTour();
+});
+$('coachSkip').addEventListener('click', endTour);
+addEventListener('resize', () => { if ($('howto').classList.contains('on')) setTimeout(renderTour, 50); });
 
 function gameOver(){
   S.phase = 'over';
@@ -367,8 +426,8 @@ function onFound(){
   AR.open($('ar'));
   sound.serve(); buzz(40);
   overlay('found', true);
-  setTimeout(() => overlay('found', false), 1300);
-  startGame();
+  setTimeout(() => overlay('found', false), 1100);
+  startGame({ tour: true });
 }
 // The page opens straight into the camera viewfinder.
 async function openShop(demo){

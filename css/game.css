@@ -221,6 +221,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .over-actions{display:flex;gap:8px;justify-content:center;margin-top:16px}
 .over-actions .btn{flex:1}
 
+/* ================= HOW TO PLAY ================= */
+#howto{z-index:28;pointer-events:auto}
+.spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(28,18,10,.62),0 0 0 3px #fff8ec,0 0 22px 6px rgba(255,248,236,.35);
+  transition:all .4s var(--anatomy-ease);pointer-events:none}
+.coach{position:fixed;left:12px;right:12px;margin:0 auto;max-width:400px;padding:26px 16px 12px;background:var(--anatomy-card);
+  transition:top .4s var(--anatomy-ease);animation:pop .35s var(--anatomy-ease)}
+.coach-title{font-size:19px;font-weight:900;color:var(--anatomy-strong);line-height:1.2}
+.coach-text{margin-top:4px;font-size:15px;line-height:1.4;color:var(--anatomy-text)}
+.coach-text b{color:var(--anatomy-red)}
+.coach-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.coach-row .btn{min-width:130px}
+
 /* 2D art animations (logo steam, map ping) */
 .rb-steam path{stroke-dasharray:70;stroke-dashoffset:70;animation:steam 1.6s ease-in-out infinite;opacity:.6}
 @keyframes steam{0%{stroke-dashoffset:70;opacity:0}40%{opacity:.7}100%{stroke-dashoffset:-70;opacity:0}}
