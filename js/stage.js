@@ -741,7 +741,8 @@ export async function scan(container, { onStatus, onFound }){
     onFound();
   };
   onStatus('Starting camera…');
-  await mindar.start();
+  try { await mindar.start(); }
+  catch (e){ try { mindar.stop(); } catch { /* never started */ } R.mindar = null; throw e || new Error('camera unavailable'); }
   mindar.renderer.setAnimationLoop(() => mindar.renderer.render(mindar.scene, mindar.camera));
   onStatus('Looking for the card…');
 }

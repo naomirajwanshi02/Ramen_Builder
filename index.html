@@ -25,47 +25,26 @@
 }
 </script>
 </head>
-<body class="iso" data-theme="sepia">
+<body class="iso ar" data-theme="sepia">
 
 <!-- camera + 3D scene (MindAR or demo board) -->
 <div id="ar"></div>
 
-<!-- ============ START ============ -->
-<section id="start" class="screen on">
-  <div class="col">
-    <div class="plate hero">
-      <span class="corner tl">Fig. 01</span><span class="corner tr">AR game</span>
-      <span class="corner bl">12 bowls · 4 islands</span><span class="corner br" id="bestCorner">best 0</span>
-      <div class="logo" id="logo"></div>
-      <h1>Ramen Builder</h1>
-      <div class="kana">ラーメン</div>
-      <p>Scan the card to open the ramen shop, then build bowls from all over Japan before time runs out. It gets faster with every bowl!</p>
-    </div>
-    <div class="start-actions">
-      <button class="btn red" id="scanBtn">📷 Scan the card</button>
-      <div class="links">
-        <button class="link" id="noScanBtn">No card? Play in demo mode</button>
-        <a class="link" href="target.png" target="_blank" rel="noopener">Get the card</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ SCAN GUIDE (also shown when the card is lost mid-game) ============ -->
-<div id="guide" class="overlay">
-  <div class="scan-top plate"><b id="guideTitle">Point your camera at the Ramen Builder card</b><span class="cap">Once it's found you can move freely</span></div>
+<!-- ============ VIEWFINDER: the page opens straight into it ============ -->
+<div id="guide" class="overlay on">
+  <div class="scan-top plate"><b id="guideTitle">Point your camera at the Ramen Builder card</b><span class="cap">The game starts as soon as it's found</span></div>
   <div class="frame"><i></i><i></i><i></i><i></i><div class="sweep"></div></div>
   <div class="scan-bottom">
     <div class="status" id="scanStatus">Starting camera…</div>
     <div class="row">
-      <button class="btn ghost small" id="scanCancel">Back</button>
-      <button class="btn ghost small" id="scanSkip">Demo mode</button>
+      <button class="btn ghost small" id="scanRetry" hidden>Try again</button>
+      <a class="btn ghost small" href="target.png" target="_blank" rel="noopener">Get the card</a>
+      <button class="btn ghost small" id="scanSkip">No card? Demo</button>
     </div>
   </div>
 </div>
 
-<div id="found" class="overlay"><div class="plate badge"><div class="stamp">🍜</div><b>Card found!</b><span>Irasshaimase — the shop is open!</span></div></div>
-<div id="count" class="overlay"><span></span></div>
+<div id="found" class="overlay"><div class="plate badge"><div class="stamp">🍜</div><b>Irasshaimase!</b><span>The shop is open — start cooking!</span></div></div>
 
 <!-- ============ AR HUD ============ -->
 <div id="hud" class="overlay">
@@ -133,14 +112,14 @@
       <div class="learned" id="learned"></div>
       <div class="over-actions">
         <button class="btn red" id="againBtn">Play again</button>
-        <button class="btn ghost" id="menuBtn">Menu</button>
+        <button class="btn ghost" id="menuBtn">Scan again</button>
       </div>
     </div>
   </div>
 </section>
 
 <div class="plate toast" id="toast"></div>
-<div class="plate errbox" id="err" hidden><b>Something went wrong</b><pre id="errText"></pre><button class="btn small" id="errBtn">Back to menu</button></div>
+<div class="plate errbox" id="err" hidden><b>Something went wrong</b><pre id="errText"></pre><button class="btn small" id="errBtn">Start over</button></div>
 
 <script type="module" src="js/game.js"></script>
 </body>

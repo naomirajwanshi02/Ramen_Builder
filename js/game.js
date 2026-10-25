@@ -1,6 +1,6 @@
 // Ramen_Builder — game rules, scoring and HUD. The 3D stage lives in stage.js.
 import { INGREDIENTS, RECIPES, PACE, LAYER_NAME, SHORT } from './data.js';
-import { ingredientSvg, bowlSvg, japanMapSvg } from './art.js';
+import { ingredientSvg, japanMapSvg } from './art.js';
 import * as AR from './stage.js';
 
 const $ = (id) => document.getElementById(id);
@@ -301,30 +301,13 @@ function resetGame(){
   renderMult(false); renderLives();
 }
 
-function countdown(then){
-  S.phase = 'count';
-  overlay('count', true);
-  const span = $('count').querySelector('span');
-  const steps = ['3', '2', '1', 'いただきます!'];
-  steps.forEach((txt, i) => setTimeout(() => {
-    span.textContent = txt;
-    span.className = i === 3 ? 'go' : '';
-    span.style.animation = 'none'; void span.offsetWidth; span.style.animation = '';
-    sound.tone(i === 3 ? 880 : 440, 0.12);
-  }, i * 700));
-  setTimeout(() => { overlay('count', false); then(); }, steps.length * 700);
-}
-
+// No countdown: the first order is on the counter the moment the shop opens.
 function startGame(){
   resetGame();
   show(null);
   overlay('hud', true);
-  $('ordName').textContent = 'Get ready…';
-  $('ticket').innerHTML = ''; $('hint').textContent = ''; $('ordPlace').textContent = ''; $('ordRead').textContent = '';
   $('dragHint').style.opacity = '';
-  AR.layout();
-  AR.newBowl();
-  countdown(() => newOrder());
+  newOrder();
 }
 
 function gameOver(){
@@ -384,48 +367,42 @@ function onFound(){
   AR.open($('ar'));
   sound.serve(); buzz(40);
   overlay('found', true);
-  setTimeout(() => { overlay('found', false); startGame(); }, 1400);
+  setTimeout(() => overlay('found', false), 1300);
+  startGame();
 }
+// The page opens straight into the camera viewfinder.
 async function openShop(demo){
-  sound.unlock();
-  AR.askMotion(); // iPhone asks once for motion access (used for a little tilt parallax)
   S.phase = 'scan'; S.started = false;
   show(null);
-  document.body.classList.add('ar');
+  overlay('hud', false);
+  $('scanRetry').hidden = true;
   $('guideTitle').textContent = 'Point your camera at the Ramen Builder card';
   $('scanStatus').textContent = 'Starting camera…';
   overlay('guide', !demo);
   try {
     await AR.preloadIcons();
-    if (demo){ await AR.openDemo($('ar')); S.started = false; onFoundDemo(); }
+    if (demo){ await AR.openDemo($('ar')); onFound(); }
     else await AR.scan($('ar'), { onStatus: (t) => { $('scanStatus').textContent = t; }, onFound });
   } catch (err) {
     console.error(err);
-    const msg = String(err?.message || err);
-    $('scanStatus').textContent = /permission|denied|notallowed/i.test(msg)
-      ? 'Camera blocked — allow camera access for this site in your browser settings, or use demo mode.'
-      : /mind|fetch|404/i.test(msg) ? `Could not load the card data (${msg}).` : `Could not start the camera (${msg}).`;
+    const msg = String(err?.message || err?.name || err || '');
+    $('scanStatus').textContent = /mind|fetch|404/i.test(msg) ? `Could not load the card data (${msg}).`
+      : 'Camera not available — allow camera access for this site in your browser settings, then tap Try again.';
+    $('scanRetry').hidden = false;
   }
 }
-function closeShop(){
+function rescan(demo = false){
   AR.stop();
-  document.body.classList.remove('ar');
-  ['guide', 'hud', 'count', 'found'].forEach((id) => overlay(id, false));
-  S.phase = 'menu';
-  syncBest();
-  show('start');
-}
-function onFoundDemo(){
-  S.started = true;
-  startGame();
+  overlay('found', false);
+  openShop(demo);
 }
 
+// Sound and iPhone motion access both need a tap, so they unlock on the first touch anywhere.
+addEventListener('pointerdown', () => { sound.unlock(); AR.askMotion(); }, { once: true, capture: true });
+
 // ------------------------------------------------------------ wiring
-function syncBest(){ $('bestCorner').textContent = `best ${store.get('best', 0)}`; }
-$('scanBtn').addEventListener('click', () => openShop(false));
-$('noScanBtn').addEventListener('click', () => openShop(true));
-$('scanCancel').addEventListener('click', closeShop);
-$('scanSkip').addEventListener('click', () => { AR.stop(); openShop(true); });
+$('scanRetry').addEventListener('click', () => rescan(false));
+$('scanSkip').addEventListener('click', () => rescan(true));
 $('pauseBtn').addEventListener('click', pause);
 $('resumeBtn').addEventListener('click', resume);
 $('quitBtn').addEventListener('click', () => { show(null); gameOver(); });
@@ -435,21 +412,20 @@ $('soundBtn').addEventListener('click', () => {
   sound.unlock();
 });
 $('againBtn').addEventListener('click', () => { show(null); startGame(); });
-$('menuBtn').addEventListener('click', closeShop);
-$('errBtn').addEventListener('click', () => { $('err').hidden = true; closeShop(); });
+$('menuBtn').addEventListener('click', () => rescan(false));
+$('errBtn').addEventListener('click', () => { $('err').hidden = true; rescan(false); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-addEventListener('error', (e) => { $('errText').textContent = String(e.error?.stack || e.message); $('err').hidden = false; });
-addEventListener('unhandledrejection', (e) => { $('errText').textContent = String(e.reason?.stack || e.reason); $('err').hidden = false; });
+// MindAR's own listeners can throw after a failed camera start; the viewfinder already says what to do.
+const fromTracker = (s) => /mind-?ar/i.test(String(s));
+addEventListener('error', (e) => { const s = e.error?.stack || e.message; if (fromTracker(s + e.filename)) return; $('errText').textContent = String(s); $('err').hidden = false; });
+addEventListener('unhandledrejection', (e) => { const s = e.reason?.stack || e.reason; if (fromTracker(s)) return; $('errText').textContent = String(s); $('err').hidden = false; });
 
 AR.onPick(onPick);
 // The stage fills the screen below the order card, leaving a strip for the drag hint.
 AR.setLayoutBounds(() => $('hudstack').getBoundingClientRect().bottom + 6, () => 22 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-b')) || 0));
 $('soundBtn').textContent = `Sound: ${sound.on ? 'on' : 'off'}`;
-$('logo').innerHTML = bowlSvg({ broth: 'miso', noodles: 'thickCurly', toppings: ['chashu', 'corn', 'butter', 'moyashi', 'negi'] }, { steam: true });
-syncBest();
-show('start');
 
 // Debug hooks for headless checks.
 window.__ramen = { S, newOrder, gameOver, startGame, onPick, AR };
 
-if (DEMO) openShop(true);
+openShop(DEMO);
