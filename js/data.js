@@ -87,6 +87,16 @@ export const RECIPES = [
     fact: 'Kumamoto ramen gets its smoky taste from mayu, garlic fried until it turns black.' },
 ];
 
+// Short labels for the floating AR tokens (full names are on the order ticket).
+export const SHORT = {
+  miso: 'Miso', shoyu: 'Shoyu', shio: 'Shio', tonkotsu: 'Tonkotsu', tonkotsuShoyu: 'Tonkotsu-shoyu', blackShoyu: 'Black shoyu',
+  thickCurly: 'Thick curly', thinStraight: 'Thin straight', flatWavy: 'Flat wavy', mediumCurly: 'Medium curly', thickStraight: 'Thick straight',
+  chashu: 'Chashu', ajitama: 'Ajitama egg', rawEgg: 'Raw egg', corn: 'Corn', butter: 'Butter', moyashi: 'Bean sprouts',
+  menma: 'Menma', nori: 'Nori', naruto: 'Naruto', kamaboko: 'Kamaboko', negi: 'Green onion', beniShoga: 'Red ginger',
+  kikurage: 'Kikurage', sesame: 'Sesame', garlicChips: 'Garlic chips', mayu: 'Black garlic oil', spinach: 'Spinach',
+  seabura: 'Back fat', pepper: 'Black pepper', porkBelly: 'Pork belly', wakame: 'Wakame',
+};
+
 export const DIFFICULTY = {
   easy:   { label: 'Easy',   ages: '8+',  perStep: 4.4, floor: 1.9, shrink: 0.965, decoys: [2, 5], lives: 3 },
   normal: { label: 'Normal', ages: '10+', perStep: 3.4, floor: 1.4, shrink: 0.955, decoys: [3, 7], lives: 3 },
