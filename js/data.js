@@ -18,7 +18,7 @@ export const INGREDIENTS = {
 
   // ---- noodles ---------------------------------------------------------
   thickCurly:    { layer: 'noodles', name: 'Thick curly noodles',   jp: '太縮れ麺', style: 'curly',   weight: 5.2, say: 'Chewy and springy, they hold rich miso soup.' },
-  thinStraight:  { layer: 'noodles', name: 'Thin straight noodles', jp: '極細麺',   style: 'straight', weight: 1.8, say: 'Very thin — they cook in about 15 seconds!' },
+  thinStraight:  { layer: 'noodles', name: 'Thin straight noodles', jp: '極細麺',   style: 'straight', weight: 1.8, say: 'Very thin. They cook in about 15 seconds!' },
   flatWavy:      { layer: 'noodles', name: 'Flat wavy noodles',     jp: '平打ち麺', style: 'flat',    weight: 6.5, say: 'Wide, flat ribbons that wave like a flag.' },
   mediumCurly:   { layer: 'noodles', name: 'Medium curly noodles',  jp: '中細縮れ麺', style: 'curly', weight: 3.2, say: 'The classic Tokyo noodle: wavy and bouncy.' },
   thickStraight: { layer: 'noodles', name: 'Thick straight noodles', jp: '太麺',    style: 'straight', weight: 4.6, say: 'Fat, chewy, straight noodles.' },
@@ -26,7 +26,7 @@ export const INGREDIENTS = {
   // ---- toppings --------------------------------------------------------
   chashu:      { layer: 'topping', name: 'Chashu pork',      jp: 'チャーシュー', say: 'Slow-braised pork, sliced into rounds.' },
   ajitama:     { layer: 'topping', name: 'Ajitama egg',      jp: '味玉',       say: 'Soft-boiled egg soaked in soy sauce.' },
-  rawEgg:      { layer: 'topping', name: 'Raw egg',          jp: '生卵',       say: 'Cracked on top — it cooks gently in the hot soup.' },
+  rawEgg:      { layer: 'topping', name: 'Raw egg',          jp: '生卵',       say: 'Cracked on top, it cooks gently in the hot soup.' },
   corn:        { layer: 'topping', name: 'Sweet corn',       jp: 'コーン',     say: 'Hokkaido grows lots of sweet corn.' },
   butter:      { layer: 'topping', name: 'Butter',           jp: 'バター',     say: 'Melts into the soup. Hokkaido is dairy country!' },
   moyashi:     { layer: 'topping', name: 'Bean sprouts',     jp: 'もやし',     say: 'Crunchy sprouts, often stir-fried first.' },
@@ -36,13 +36,13 @@ export const INGREDIENTS = {
   kamaboko:    { layer: 'topping', name: 'Kamaboko',         jp: 'かまぼこ',   say: 'Steamed fish cake with a pink edge.' },
   negi:        { layer: 'topping', name: 'Green onion',      jp: 'ねぎ',       say: 'Chopped green onion for freshness.' },
   beniShoga:   { layer: 'topping', name: 'Pickled ginger',   jp: '紅しょうが', say: 'Bright red, sour ginger strips.' },
-  kikurage:    { layer: 'topping', name: 'Kikurage',         jp: 'きくらげ',   say: 'Wood-ear mushroom — it crunches!' },
+  kikurage:    { layer: 'topping', name: 'Kikurage',         jp: 'きくらげ',   say: 'Wood-ear mushroom. It crunches!' },
   sesame:      { layer: 'topping', name: 'Sesame seeds',     jp: 'ごま',       say: 'Toasted seeds sprinkled on top.' },
   garlicChips: { layer: 'topping', name: 'Garlic chips',     jp: 'フライドガーリック', say: 'Thin slices of fried garlic.' },
   mayu:        { layer: 'topping', name: 'Black garlic oil', jp: 'マー油',     say: 'Garlic cooked until black, mixed with oil.' },
-  spinach:     { layer: 'topping', name: 'Spinach',          jp: 'ほうれん草', say: 'Boiled spinach — a must in Yokohama Iekei.' },
+  spinach:     { layer: 'topping', name: 'Spinach',          jp: 'ほうれん草', say: 'Boiled spinach, a must in Yokohama Iekei.' },
   seabura:     { layer: 'topping', name: 'Back fat',         jp: '背脂',       say: 'Little drops of pork fat that float on top.' },
-  pepper:      { layer: 'topping', name: 'Black pepper',     jp: '黒胡椒',     say: 'Lots of coarse pepper — Toyama Black is spicy!' },
+  pepper:      { layer: 'topping', name: 'Black pepper',     jp: '黒胡椒',     say: 'Lots of coarse pepper. Toyama Black is spicy!' },
   porkBelly:   { layer: 'topping', name: 'Sweet pork belly', jp: '豚バラ',     say: 'Pork belly simmered sweet, instead of chashu.' },
   wakame:      { layer: 'topping', name: 'Wakame',           jp: 'わかめ',     say: 'Soft green seaweed from the sea.' },
 };
@@ -57,7 +57,7 @@ export const RECIPES = [
     fact: 'Hakodate is a port city, so its ramen is light and salty, like the sea breeze.' },
   { id: 'kitakata',  name: 'Kitakata Shoyu Ramen',    place: 'Kitakata · Fukushima',   x: 66, y: 44,
     broth: 'shoyu', noodles: 'flatWavy', toppings: ['chashu', 'menma', 'negi', 'naruto'],
-    fact: 'Kitakata has so many ramen shops that people eat ramen for breakfast — it is called "asa-ra".' },
+    fact: 'Kitakata has so many ramen shops that people eat ramen for breakfast. It is called "asa-ra".' },
   { id: 'tokyo',     name: 'Tokyo Shoyu Ramen',       place: 'Tokyo',                  x: 64, y: 56,
     broth: 'shoyu', noodles: 'mediumCurly', toppings: ['chashu', 'menma', 'nori', 'naruto', 'negi'],
     fact: 'The first ramen shops in Tokyo opened over 100 years ago, serving this classic soy-sauce bowl.' },
@@ -105,5 +105,4 @@ export const PACE = {
   decoys: [2, 7], // wrong ingredients mixed in: from 2 up to 7 by the 14th bowl
   toppings: 2,    // toppings on the first order; one more every 2 bowls, up to the full recipe
   lives: 3,
-  hintAfter: 6,   // seconds without progress before the wanted ingredients hop
 };

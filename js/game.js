@@ -41,7 +41,7 @@ const buzz = (ms) => { try { navigator.vibrate?.(ms); } catch { /* unsupported *
 const S = {
   phase: 'menu', // menu | scan | count | play | serving | paused | over
   score: 0, combo: 0, maxCombo: 0, mult: 1, maxMult: 1, lives: 3, served: 0,
-  recipe: null, need: [], bowl: null, mistakes: 0, idle: 0,
+  recipe: null, need: [], bowl: null, mistakes: 0,
   timeLeft: 0, timeMax: 1, lastTickAt: 0, learned: new Set(), lastRecipe: null,
   started: false, // the AR shop has been opened at least once this session
 };
@@ -132,7 +132,7 @@ function newOrder(){
   const nTop = Math.min(r.toppings.length, d.toppings + Math.floor(S.served / 2));
   S.need = [r.broth, r.noodles, ...r.toppings.slice(0, nTop)];
   S.bowl = { broth: null, noodles: null, toppings: [] };
-  S.mistakes = 0; S.idle = 0;
+  S.mistakes = 0;
 
   // Decoys come from the same layers, so the player has to know which broth and which noodle.
   const ramp = Math.min(1, S.served / 14);
@@ -149,7 +149,6 @@ function newOrder(){
   $('ordName').textContent = r.name;
   AR.newBowl();
   AR.setTokens(shuffle([...S.need, ...decoys]));
-  AR.hint(null);
   renderTicket();
   requestAnimationFrame(() => AR.layout()); // the ticket height may have changed
   S.phase = 'play';
@@ -186,8 +185,6 @@ function onPick(id){
   if (layer === 'broth') S.bowl.broth = id;
   else if (layer === 'noodles') S.bowl.noodles = id;
   else S.bowl.toppings.push(id);
-  S.idle = 0;
-  AR.hint(null);
   sound.good(S.bowl.toppings.length + (S.bowl.noodles ? 1 : 0));
   buzz(12);
   tagAt(at, `+10 ${SHORT[id]}`, 'good');
@@ -305,12 +302,6 @@ function loop(t){
   lastT = t;
   if (S.phase === 'play'){
     S.timeLeft -= dt;
-    S.idle += dt;
-    // A nudge for younger players: after a while with no progress, the wanted ingredients hop.
-    if (S.idle > PACE.hintAfter){
-      const layer = nextLayer();
-      AR.hint(S.need.filter((id) => !have(id) && INGREDIENTS[id].layer === layer));
-    }
     const frac = Math.max(0, S.timeLeft / S.timeMax);
     $('timerBar').style.transform = `scaleX(${frac})`;
     const hot = frac < 0.3;
@@ -379,7 +370,6 @@ function endTour(){
   overlay('howto', false);
   if (S.phase !== 'intro') return;
   S.timeLeft = S.timeMax;
-  S.idle = 0;
   S.phase = 'play';
   sound.unlock();
   popup('Go!', 'big', 0.4);
@@ -466,7 +456,7 @@ async function openShop(demo){
     console.error(err);
     const msg = String(err?.message || err?.name || err || '');
     $('scanStatus').textContent = /mind|fetch|404/i.test(msg) ? `Could not load the card data (${msg}).`
-      : 'Camera not available — allow camera access for this site in your browser settings, then tap Try again.';
+      : 'Camera not available. Allow camera access for this site in your browser settings, then tap Try again.';
     $('scanRetry').hidden = false;
   }
 }

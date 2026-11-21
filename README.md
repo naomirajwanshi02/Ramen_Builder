@@ -1,8 +1,8 @@
-# 🍜 Ramen Builder — scan-to-play WebAR ramen game
+# 🍜 Ramen Builder: a scan-to-play WebAR ramen game
 
 Point your phone at the **ramen painting** → the picture is recognised →
 the shop opens and the orders start coming. Build regional ramen bowls from all
-over Japan, layer by layer, against the clock. Made for ages 8–15.
+over Japan, layer by layer, against the clock. Made for ages 8 to 15.
 
 **Play:** https://naomirajwanshi02.github.io/Ramen_Builder/
 **Without the picture (for testing):** https://naomirajwanshi02.github.io/Ramen_Builder/?demo=1. The viewfinder itself has no demo or download buttons.
@@ -19,6 +19,8 @@ over Japan, layer by layer, against the clock. Made for ages 8–15.
 3. An **order** comes in, such as *Sapporo Miso Ramen*, with a big ingredient ticket at the top.
    A 3D bowl stands on its counter, and 3D ingredients wait on little plates below it. Tap them to build
    the bowl the way a ramen cook does: **broth → noodles → toppings** (toppings in any order).
+   Only the 3D food and its plate count as a tap; the name under it is just a label. There are no hints:
+   every plate floats the same way, so you have to know which ingredient is which.
 4. When every ingredient is in, the bowl is **served automatically**. After a short beat, a card
    shows a picture of the bowl you made and a fact about its region for about 2.6 seconds (tap to skip).
    The clock is stopped while it's up. Then the next order arrives.
@@ -31,7 +33,7 @@ over Japan, layer by layer, against the clock. Made for ages 8–15.
 | **Combo / multiplier** | Every **perfect bowl** in a row (no wrong taps) adds 1 to the multiplier, up to ×5. One mistake, or a bowl that goes cold, resets it to ×1. |
 | **Score** | Always a multiple of 10. Each ingredient is +10. Serving a bowl adds (100 + up to 150 speed bonus + 50 for a perfect bowl) × multiplier. Points fly into the counter, and the counter rolls and **locks** with a click. |
 | **Game over** | The final score's digits spin and lock one at a time, then a red LOCKED seal stamps it. Your best score is saved on your phone. |
-| **One ramp, ages 8–15** | There are no difficulty levels. The game starts gentle and speeds up with every bowl. Orders grow from a few toppings to the full regional recipe, and decoys go from 2 up to 7. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. After 6 s with no progress, the wanted ingredients hop to help. |
+| **One ramp, ages 8 to 15** | There are no difficulty levels. The game starts gentle and speeds up with every bowl. Orders grow from a few toppings to the full regional recipe, and decoys go from 2 up to 7. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. |
 
 ## The 12 regional bowls
 
@@ -64,7 +66,7 @@ onion in a raimon-pattern bowl). The original is [`assets/ramen-painting.jpg`](a
 `tools/make-target.html?src=../assets/ramen-painting.jpg&build=1`.
 
 - Print `target.png` about **18 cm wide** (about 18 × 14 cm), on **matte** paper, or show it on a laptop or tablet.
-- Don't crop it. Lay it flat in even light, and hold the phone 20–40 cm away.
+- Don't crop it. Lay it flat in even light, and hold the phone 20 to 40 cm away.
 - The picture only has to be recognised once; after that the game doesn't need it in frame.
 
 The compiled target scores **2,108 detection points over 12 scales and 43 tracking points**
@@ -86,6 +88,12 @@ The look comes from the [Anatomy](https://github.com/wheresryan22/anatomy) skill
   - ruffled spinach and wakame leaves, and glossy black garlic oil.
   
   The **order ticket's pictures are rendered from the same 3D models**, so the ticket and the plates always match.
+- **Noodles are laid the way a cook lays them.** Straight and flat noodles are folded into the bowl in neat bundles
+  of parallel strands, each bundle resting on the one below. Curly noodles are springy, crimped strands. Each strand
+  has its own wheat shade and a wet shine, and the ends slide under the broth.
+- **Nothing passes through anything else.** Every piece (a chashu slice, a corn kernel, a leaf) is dropped onto a
+  height map and comes to rest on the plate, the noodles or the pieces already there. A second chashu slice
+  leans on the first, a heap of corn spreads out like poured corn, and toppings sit on top of the noodles.
 - The **ramen bowl is an Anatomy turned solid**. One meridian profile goes through
   `lathe.mjs` → `solidOf`, then `iso-kit.mjs` → `solidSvg`, which gives four-tone
   shading, a halo, crease lines and a raimon border on the front half only. The kit

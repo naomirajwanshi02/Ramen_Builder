@@ -67,6 +67,9 @@ void main(){
   #ifdef USE_INSTANCING_COLOR
     vTint = instanceColor;         // per-piece colour (raw sRGB), e.g. pale-to-dark green onion rings
   #endif
+  #ifdef USE_COLOR
+    vTint *= color;                // per-vertex shade, e.g. each noodle strand a slightly different wheat tone
+  #endif
   vN = normalize(normalMatrix * n);
   vec4 mv = modelViewMatrix * p;
   mv.xyz += vN * uInk;             // ink hull: grow along the normal, in world units
@@ -137,8 +140,9 @@ const piece = (geo, m) => ink(new THREE.Mesh(geo, m), FOOD_INK);
 const C = { porcelain: '#f6ecd8', inner: '#efe3cb', red: '#b5452f', noodle: '#ecd391', wood: '#c39a62', woodTop: '#d9b88a' };
 const PORCELAIN = shared(mat(C.porcelain, { side: THREE.DoubleSide }));
 const GLAZE_RED = shared(mat(C.red));
-const NOODLE = shared(food(C.noodle, { spec: 0.22, gloss: 16 }));
-const NOODLE_INK = inkMat('#a47c3c', 0.0006);
+const NOODLE = shared(food('#ebcb80', { spec: 0.38, gloss: 28 }));
+NOODLE.vertexColors = true; // each strand carries its own shade
+const NOODLE_INK = inkMat('#b38b48', 0.0004);
 
 // ------------------------------------------------------------------ painted food textures (raw sRGB)
 const texCache = new Map();
@@ -304,57 +308,75 @@ function brothMesh(id, scale = 1){
   return g;
 }
 
-/* Noodles, built the way they sit in a real bowl: a folded bed of strands, two or
-   three layers deep, each layer at a slightly different angle. Strands rise into a
-   soft mound in the middle and their ends dip under the broth (`dip`), so they look
-   like they come up out of the soup instead of stopping in mid-air.
-   - straight / flat: long strands with a gentle S-wave (flat ones are wide ribbons)
-   - curly (chijire): short, tight kinks along a wandering path — the crinkle of
-     Sapporo and Tokyo noodles. */
+/* Noodles, laid the way a ramen cook lays them.
+   - straight / flat: the cook lifts the noodles and folds them into the bowl in a few
+     neat bundles. Strands run side by side in ribbons that sweep across the bowl, each
+     ribbon resting on the one before, so no two strands pass through each other.
+   - curly (chijire): springy strands with a tight, regular crimp (side to side and up
+     and down), tumbled in a loose heap: the Sapporo and Tokyo noodle.
+   Every strand gets its own wheat shade and a wet shine, and with `dip` the ends slide
+   under the broth so the noodles come up out of the soup. */
 function noodleMesh(id, radius, { dip = true } = {}){
   const n = INGREDIENTS[id];
   const tube = { 1.8: 0.0011, 3.2: 0.0016, 4.6: 0.0021, 5.2: 0.0022, 6.5: 0.0021 }[n.weight] || 0.0017;
-  const R = radius;
-  const mound = (x, z) => 0.0025 + 0.009 * Math.max(0, 1 - (x * x + z * z) / (R * R)) ** 0.8;
-  const sink = (t) => (dip ? -0.009 * Math.max(0, (Math.abs(t) - 0.72) / 0.28) ** 1.6 : 0); // ends go under the soup
+  const R = radius, flat = n.style === 'flat';
+  const mound = (x, z) => 0.002 + 0.008 * Math.max(0, 1 - (x * x + z * z) / (R * R)) ** 0.9;
+  const sink = (t) => (dip ? -0.01 * Math.max(0, (Math.abs(t) - 0.7) / 0.3) ** 1.5 : 0); // ends go under the soup
   const geos = [];
-  const add = (pts) => { if (pts.length >= 4) geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 4, tube, 6, false)); };
+  const add = (pts) => {
+    if (pts.length < 4) return;
+    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 4, tube, 7, false);
+    const k = rnd(0.86, 1.06), sh = [k, k * rnd(0.98, 1.02), k * rnd(0.92, 1.0)];
+    const c = new Float32Array(g.attributes.position.count * 3);
+    for (let i = 0; i < c.length; i += 3){ c[i] = sh[0]; c[i + 1] = sh[1]; c[i + 2] = sh[2]; }
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    geos.push(g);
+  };
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  if (n.style === 'straight' || n.style === 'flat'){
-    const flat = n.style === 'flat';
-    const layers = 3, gap = tube * (flat ? 2.9 : 2.3) * layers;
-    for (let L = 0; L < layers; L++){
-      const ang = (L - 1) * 0.1 + rnd(-0.04, 0.04);
+  if (n.style !== 'curly'){
+    const bundles = tube < 0.0014 ? 5 : 4;
+    const a0 = rnd(0, TAU);
+    for (let b = 0; b < bundles; b++){
+      const ang = a0 + (b / bundles) * Math.PI * 0.9 + rnd(-0.15, 0.15);
       const dir = [Math.cos(ang), Math.sin(ang)], perp = [-dir[1], dir[0]];
-      for (let d = -R * 0.95 + (L * gap) / layers; d <= R * 0.95; d += gap){
-        const half = Math.sqrt(Math.max(0, R * R - d * d)) * rnd(1.05, 1.25);
-        const ph = rnd(0, TAU), waves = rnd(1.2, 2.2), amp = tube * (flat ? 1.6 : 0.9);
+      const width = R * rnd(0.7, 0.95), off0 = rnd(-0.2, 0.2) * R;
+      const pitch = tube * (flat ? 3.0 : 2.3);
+      const count = Math.max(4, Math.floor(width / pitch));
+      const waves = rnd(0.8, 1.4), ph = rnd(0, TAU), bend = R * rnd(0.08, 0.16);
+      const lift = b * tube * 3.2; // this ribbon lies on the ones before it (room for each strand to rise and fall)
+      for (let j = 0; j < count; j++){
+        const o = off0 + (j / (count - 1) - 0.5) * width;
+        const half = Math.sqrt(Math.max(0, R * R - o * o)) * rnd(1.0, 1.15);
+        const rise = (rnd(1.5, 3) * TAU) / (2 * half), rph = rnd(0, TAU); // each strand rises and falls gently on its own
+        if (half < R * 0.25) continue;
         const pts = [];
-        for (let i = 0; i <= 16; i++){
-          const t = i / 8 - 1;
-          const off = d + Math.sin(t * Math.PI * waves + ph) * amp;
-          const x = dir[0] * t * half + perp[0] * off, z = dir[1] * t * half + perp[1] * off;
-          pts.push(V(x, mound(x, z) + L * tube * 1.5 + rnd(0, 0.0008) + sink(t), z));
+        for (let i = 0; i <= 18; i++){
+          const t = i / 9 - 1, s = t * half;
+          // the sweep follows the distance along the ribbon, so neighbouring strands stay parallel
+          const lat = o + Math.sin((s / R) * Math.PI * waves + ph) * bend;
+          const x = dir[0] * s + perp[0] * lat, z = dir[1] * s + perp[1] * lat;
+          pts.push(V(x, mound(x, z) + lift + Math.sin(s * rise + rph) * tube * 0.5 + sink(t), z));
         }
         add(pts);
       }
     }
   } else {
-    const strands = Math.round((R * R) / (tube * tube) * 0.075 + 6);
+    const strands = Math.round((R * R) / (tube * tube) * 0.06 + 8);
     for (let s = 0; s < strands; s++){
-      let a = rnd(0, TAU);
-      const r0 = Math.sqrt(Math.random()) * R * 0.75;
-      let x = Math.cos(a) * r0 - Math.cos(a) * R * 0.7, z = Math.sin(a) * r0 - Math.sin(a) * R * 0.7;
-      const steps = 34, len = R * rnd(1.5, 2.1), step = len / steps, kink = rnd(1.6, 2.4), ph = rnd(0, TAU);
+      const start = rnd(0, TAU), r0 = R * rnd(0.6, 0.95);
+      let x = Math.cos(start) * r0, z = Math.sin(start) * r0;
+      let a = start + Math.PI + rnd(-0.7, 0.7); // head across the bowl
+      const steps = 40, len = R * rnd(1.4, 1.9), step = len / steps;
+      const kink = rnd(2.2, 2.8), amp = tube * rnd(1.6, 2.2), ph = rnd(0, TAU), lift = (s / strands) * tube * 3;
       const pts = [];
       for (let i = 0; i <= steps; i++){
         const t = (i / steps) * 2 - 1;
-        a += rnd(-0.12, 0.12);                       // the path wanders...
+        a += rnd(-0.08, 0.08);
         x += Math.cos(a) * step; z += Math.sin(a) * step;
-        const k = Math.sin(i * kink + ph) * tube * 1.5; // ...and crinkles side to side
+        const k = Math.sin(i * kink + ph) * amp, kv = Math.cos(i * kink + ph) * amp * 0.6; // crimp in 3D
         const px = x - Math.sin(a) * k, pz = z + Math.cos(a) * k;
-        if (px * px + pz * pz > (R * 1.15) ** 2) continue;
-        pts.push(V(px, mound(px, pz) + rnd(0, 0.003) + sink(t), pz));
+        if (px * px + pz * pz > (R * 1.1) ** 2) continue;
+        pts.push(V(px, mound(px, pz) + lift + kv + sink(t), pz));
       }
       add(pts);
     }
@@ -362,12 +384,111 @@ function noodleMesh(id, radius, { dip = true } = {}){
   const geo = mergeGeometries(geos);
   geos.forEach((g) => g.dispose());
   const mesh = new THREE.Mesh(geo, NOODLE);
-  // a fine, warm outline per strand, so the strands read separately like the Anatomy drawings
+  // a fine, warm edge per strand, so the strands read separately
   const edge = new THREE.Mesh(geo, NOODLE_INK);
   edge.userData.hull = true; edge.renderOrder = -1;
   mesh.add(edge);
-  if (n.style === 'flat') mesh.scale.y = 0.55;
+  if (flat) mesh.scale.y = 0.55;
   return mesh;
+}
+
+// ------------------------------------------------------------------ resting pieces on each other
+/* A height map that pieces are dropped onto: each piece is lowered until it rests on the
+   floor (a plate, the broth) or on what is already there (noodles, other pieces), so no
+   part of a model ever sinks into another. Every triangle of a piece is checked against
+   the cells under it, and then raises those cells to its own top. */
+class Pile {
+  constructor(size, cell, floor = 0){
+    this.size = size; this.cell = cell; this.floor = floor;
+    this.n = Math.ceil((2 * size) / cell);
+    this.h = new Float32Array(this.n * this.n).fill(floor);
+  }
+  span(a0, a1){ return [Math.max(0, Math.floor((a0 + this.size) / this.cell)), Math.min(this.n - 1, Math.floor((a1 + this.size) / this.cell))]; }
+  top(x0, x1, z0, z1){
+    const [i0, i1] = this.span(x0, x1), [j0, j1] = this.span(z0, z1);
+    let m = this.floor;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){ const v = this.h[j * this.n + i]; if (v > m) m = v; }
+    return m;
+  }
+  raise(x0, x1, z0, z1, y){
+    const [i0, i1] = this.span(x0, x1), [j0, j1] = this.span(z0, z1);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){ const k = j * this.n + i; if (this.h[k] < y) this.h[k] = y; }
+  }
+  // add a mesh that is already in place (the noodles), so later pieces rest on it
+  addBoxes(boxes, ox = 0, oy = 0, oz = 0){
+    for (let t = 0; t < boxes.length; t += 6) this.raise(ox + boxes[t], ox + boxes[t + 1], oz + boxes[t + 4], oz + boxes[t + 5], oy + boxes[t + 3]);
+  }
+}
+// The pile as seen from a topping built in its own units, placed at (tx, ty, tz) with scale s.
+const pileView = (pile, tx = 0, ty = 0, tz = 0, s = 1) => ({ pile, tx, ty, tz, s });
+const freshView = () => pileView(new Pile(0.05, 0.0007, 0));
+
+// per triangle: [minX, maxX, minY, maxY, minZ, maxZ] after a transform
+const _va = new THREE.Vector3(), _vb = new THREE.Vector3(), _vc = new THREE.Vector3();
+function triBoxes(geo, m){
+  const p = geo.attributes.position, idx = geo.index;
+  const n = (idx ? idx.count : p.count) / 3;
+  const out = new Float32Array(n * 6);
+  for (let t = 0; t < n; t++){
+    const a = idx ? idx.getX(3 * t) : 3 * t, b = idx ? idx.getX(3 * t + 1) : 3 * t + 1, c = idx ? idx.getX(3 * t + 2) : 3 * t + 2;
+    _va.fromBufferAttribute(p, a).applyMatrix4(m); _vb.fromBufferAttribute(p, b).applyMatrix4(m); _vc.fromBufferAttribute(p, c).applyMatrix4(m);
+    const o = 6 * t;
+    out[o] = Math.min(_va.x, _vb.x, _vc.x); out[o + 1] = Math.max(_va.x, _vb.x, _vc.x);
+    out[o + 2] = Math.min(_va.y, _vb.y, _vc.y); out[o + 3] = Math.max(_va.y, _vb.y, _vc.y);
+    out[o + 4] = Math.min(_va.z, _vb.z, _vc.z); out[o + 5] = Math.max(_va.z, _vb.z, _vc.z);
+  }
+  return out;
+}
+// the triangles of an object (all its meshes, not the ink hulls), in its own frame incl. its rotation
+function boxesOf(obj){
+  obj.position.set(0, 0, 0);
+  obj.updateMatrixWorld(true);
+  const parts = [];
+  obj.traverse((o) => { if (o.isMesh && !o.isInstancedMesh && !o.userData.hull) parts.push(triBoxes(o.geometry, o.matrixWorld)); });
+  const out = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
+  let k = 0; for (const p of parts){ out.set(p, k); k += p.length; }
+  return out;
+}
+// lowest height (in the piece's own units) at which it rests at x, z without touching anything
+function restAt(V, boxes, px, pz, gap = 0.00015){
+  const { pile, tx, ty, tz, s } = V;
+  let y = -Infinity;
+  for (let t = 0; t < boxes.length; t += 6){
+    const top = pile.top(tx + s * (px + boxes[t]), tx + s * (px + boxes[t + 1]), tz + s * (pz + boxes[t + 4]), tz + s * (pz + boxes[t + 5]));
+    y = Math.max(y, (top - ty) / s - boxes[t + 2] + gap);
+  }
+  return y === -Infinity ? 0 : y;
+}
+function commit(V, boxes, px, pz, y){
+  const { pile, tx, ty, tz, s } = V;
+  for (let t = 0; t < boxes.length; t += 6) pile.raise(tx + s * (px + boxes[t]), tx + s * (px + boxes[t + 1]), tz + s * (pz + boxes[t + 4]), tz + s * (pz + boxes[t + 5]), ty + s * (y + boxes[t + 3]));
+}
+/* Drop a piece. `at` is a spot [x, z] or a function giving a random spot; with a function,
+   a few spots are tried and the piece goes where it rests lowest (a little pull toward the
+   middle keeps a heap together), the way food poured on a plate spreads instead of stacking. */
+function settle(V, boxes, at, tries = 5){
+  if (typeof at !== 'function'){ const y = restAt(V, boxes, at[0], at[1]); commit(V, boxes, at[0], at[1], y); return [at[0], y, at[1]]; }
+  let best = null;
+  for (let i = 0; i < tries; i++){
+    const [x, z] = at(), y = restAt(V, boxes, x, z), score = y + Math.hypot(x, z) * 0.12;
+    if (!best || score < best[3]) best = [x, y, z, score];
+  }
+  commit(V, boxes, best[0], best[2], best[1]);
+  return best;
+}
+const disc = (r) => () => { const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * r; return [Math.cos(a) * d, Math.sin(a) * d]; };
+// drop an object (a mesh or a group, with its rotation already set) and add it to g
+function place(V, g, obj, at){
+  const [x, y, z] = settle(V, boxesOf(obj), at);
+  obj.position.set(x, y, z);
+  g.add(obj);
+  return obj;
+}
+// drop a bare geometry by moving its vertices (for pieces merged into one mesh later)
+function placeGeo(V, geo, at){
+  const [x, y, z] = settle(V, triBoxes(geo, new THREE.Matrix4()), at);
+  geo.translate(x, y, z);
+  return geo;
 }
 
 // ------------------------------------------------------------------ toppings
@@ -375,20 +496,22 @@ function noodleMesh(id, radius, { dip = true } = {}){
    rolled chashu slices with a fat spiral, a halved soy egg with a jammy yolk,
    scalloped naruto, half-moon kamaboko, julienned ginger, wood-ear ribbons,
    ruffled leaves, glossy oil. Food is soft-shaded with a little shine and a fine
-   warm edge; the bowl and plates keep the Anatomy bands and ink. */
+   warm edge; the bowl and plates keep the Anatomy bands and ink. Every piece is
+   dropped onto the pile, so pieces lean on each other instead of passing through. */
 const rnd = (a, b) => a + Math.random() * (b - a);
 const tint = new THREE.Color();
-function scatter(geo, material, count, radius, { y = 0.002, heap = 0.006, tilt = null, scale = [1, 1], colors = null } = {}){
+function scatter(V, geo, material, count, radius, { tilt = null, scale = [1, 1], colors = null } = {}){
   const inst = new THREE.InstancedMesh(geo, material, count);
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sv = new THREE.Vector3(), zero = new THREE.Vector3();
   const ca = colors && srgb(colors[0]), cb = colors && srgb(colors[1] ?? colors[0]);
   for (let i = 0; i < count; i++){
-    const a = Math.random() * TAU, d = Math.sqrt(Math.random()) * radius;
     if (tilt === null) e.set(Math.random() * TAU, Math.random() * TAU, Math.random() * TAU);
     else e.set(rnd(-tilt, tilt), Math.random() * TAU, rnd(-tilt, tilt));
     q.setFromEuler(e);
     const s = rnd(scale[0], scale[1]);
-    m4.compose(new THREE.Vector3(Math.cos(a) * d, y + heap * (1 - d / radius) + Math.random() * 0.001, Math.sin(a) * d), q, new THREE.Vector3(s, s, s));
+    m4.compose(zero, q, sv.set(s, s, s));
+    const [x, y, z] = settle(V, triBoxes(geo, m4), disc(radius));
+    m4.setPosition(x, y, z);
     inst.setMatrixAt(i, m4);
     if (colors){
       const k = Math.random();
@@ -396,6 +519,7 @@ function scatter(geo, material, count, radius, { y = 0.002, heap = 0.006, tilt =
       inst.setColorAt(i, tint);
     }
   }
+  inst.computeBoundingSphere();
   return inst;
 }
 // an uneven round edge, as on a hand-cut slice
@@ -446,73 +570,82 @@ function leafGeo(len, wid, ruffle = 0.2){
   geo.computeVertexNormals();
   return geo;
 }
+// a geometry painted one colour through its vertex colours (to merge pieces of two colours)
+function paint(geo, hex){
+  const c = srgb(hex), a = new Float32Array(geo.attributes.position.count * 3);
+  for (let i = 0; i < a.length; i += 3){ a[i] = c.x; a[i + 1] = c.y; a[i + 2] = c.z; }
+  geo.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return geo;
+}
 
 const TOPPINGS = {
-  chashu: () => { const g = new THREE.Group();
+  // two rolled slices, the second leaning on the first
+  chashu: (V) => { const g = new THREE.Group();
     const top = food('#ffffff', { map: TEX.chashu(), spec: 0.25, gloss: 20 }), side = food('#ffffff', { map: TEX.chashuSide() });
-    const slice = (r) => { const m = piece(wobble(new THREE.CylinderGeometry(r, r * 0.97, 0.0055, 48), 0.05), [side, top, side]); m.position.y = 0.00275; return m; };
-    const a = slice(0.025); a.rotation.z = 0.1; g.add(a);
-    const b = slice(0.023); b.position.set(0.013, 0.0045, 0.009); b.rotation.set(0.12, 0.8, -0.14); g.add(b);
+    const slice = (r, lean) => { const geo = wobble(new THREE.CylinderGeometry(r, r * 0.97, 0.0055, 48), 0.05); geo.rotateY(rnd(0, TAU)); const m = piece(geo, [side, top, side]); m.rotation.z = -lean; return m; };
+    place(V, g, slice(0.024, 0), [-0.01, -0.004]);
+    place(V, g, slice(0.022, 0.3), [0.012, 0.005]);
     return g; },
-  ajitama: () => { const g = new THREE.Group();
+  ajitama: (V) => { const g = new THREE.Group(); const egg = new THREE.Group();
     const shell = piece(new THREE.SphereGeometry(0.016, 32, 16, 0, TAU, 0, Math.PI / 2), food('#cf9658', { spec: 0.35, gloss: 30, side: THREE.DoubleSide }));
-    shell.scale.set(1, 0.62, 1.32); shell.rotation.x = Math.PI; shell.position.y = 0.0099; g.add(shell);
+    shell.scale.set(1, 0.62, 1.32); shell.rotation.x = Math.PI; shell.position.y = 0.0099; egg.add(shell);
     const face = new THREE.Mesh(new THREE.CircleGeometry(0.0159, 48), food('#ffffff', { map: TEX.ajitama(), spec: 0.3, gloss: 40 }));
-    face.rotation.x = -Math.PI / 2; face.scale.set(1, 1.32, 1); face.position.y = 0.01; g.add(face);
-    g.rotation.z = 0.2; return g; },
-  rawEgg: () => { const g = new THREE.Group();
+    face.rotation.x = -Math.PI / 2; face.scale.set(1, 1.32, 1); face.position.y = 0.01; egg.add(face);
+    egg.rotation.set(0, rnd(0, TAU), 0.2);
+    place(V, g, egg, [0, 0]); return g; },
+  rawEgg: (V) => { const g = new THREE.Group();
     const geo = new THREE.ExtrudeGeometry(noisyShape(0.022, 0.12), { depth: 0.0006, bevelEnabled: true, bevelThickness: 0.0012, bevelSize: 0.0025, bevelSegments: 3, curveSegments: 48 });
     geo.rotateX(-Math.PI / 2);
-    const white = new THREE.Mesh(geo, food('#f6efe0', { opacity: 0.93, spec: 0.5, gloss: 40 })); white.position.y = 0.0012; g.add(white);
+    place(V, g, new THREE.Mesh(geo, food('#f6efe0', { opacity: 0.93, spec: 0.5, gloss: 40 })), [0, 0]);
     const yolk = piece(new THREE.SphereGeometry(0.0105, 32, 16, 0, TAU, 0, Math.PI / 2), food('#f39a12', { spec: 0.9, gloss: 60 }));
-    yolk.scale.y = 0.72; yolk.position.set(0.002, 0.0025, -0.002); g.add(yolk); return g; },
-  corn: () => { const g = new THREE.Group();
+    yolk.scale.y = 0.72; place(V, g, yolk, [0.002, -0.002]); return g; },
+  corn: (V) => { const g = new THREE.Group();
     const geo = new THREE.SphereGeometry(0.0036, 10, 8); geo.scale(1, 0.8, 0.85);
-    g.add(scatter(geo, food('#ffffff', { spec: 0.45, gloss: 36 }), 60, 0.022, { heap: 0.009, scale: [0.85, 1.15], colors: ['#f7d24a', '#e8ac26'] })); return g; },
-  butter: () => { const g = new THREE.Group();
+    g.add(scatter(V, geo, food('#ffffff', { spec: 0.45, gloss: 36 }), 50, 0.026, { scale: [0.85, 1.15], colors: ['#f7d24a', '#e8ac26'] })); return g; },
+  butter: (V) => { const g = new THREE.Group();
     const pool = new THREE.Mesh(new THREE.ShapeGeometry(noisyShape(0.022, 0.15), 32), food('#f8de86', { opacity: 0.8, spec: 0.6, gloss: 40 }));
-    pool.rotation.x = -Math.PI / 2; pool.position.y = 0.0008; g.add(pool);
+    pool.rotation.x = -Math.PI / 2; place(V, g, pool, [0, 0]);
     const pat = piece(new RoundedBoxGeometry(0.022, 0.011, 0.02, 3, 0.0028), food('#fbe7a4', { spec: 0.35, gloss: 28 }));
-    pat.position.y = 0.0058; pat.rotation.y = 0.5; g.add(pat); return g; },
-  negi: () => { const g = new THREE.Group();
+    pat.rotation.y = 0.5; place(V, g, pat, [0, 0]); return g; },
+  negi: (V) => { const g = new THREE.Group();
     const outer = new THREE.CylinderGeometry(0.0036, 0.0036, 0.0018, 16, 1, true), inner = new THREE.CylinderGeometry(0.0022, 0.0022, 0.0018, 12, 1, true);
     const ring = mergeGeometries([outer, inner]); outer.dispose(); inner.dispose();
-    g.add(scatter(ring, food('#ffffff', { side: THREE.DoubleSide, spec: 0.3 }), 34, 0.024, { tilt: 0.35, heap: 0.005, scale: [0.8, 1.2], colors: ['#4f8a2c', '#d3e6a4'] })); return g; },
-  sesame: () => { const g = new THREE.Group();
+    g.add(scatter(V, ring, food('#ffffff', { side: THREE.DoubleSide, spec: 0.3 }), 32, 0.024, { tilt: 0.35, scale: [0.8, 1.2], colors: ['#4f8a2c', '#d3e6a4'] })); return g; },
+  sesame: (V) => { const g = new THREE.Group();
     const geo = new THREE.SphereGeometry(0.0017, 8, 5); geo.scale(1, 0.45, 0.62);
-    g.add(scatter(geo, food('#ffffff', { spec: 0.4 }), 70, 0.03, { heap: 0.002, colors: ['#f4e3bb', '#d6b177'] }));
-    g.add(scatter(geo, food('#2a2016', { spec: 0.4 }), 10, 0.03, { heap: 0.002 })); return g; },
-  seabura: () => { const g = new THREE.Group();
-    g.add(scatter(new THREE.IcosahedronGeometry(0.0024, 1), food('#ffffff', { opacity: 0.94, spec: 0.6, gloss: 30 }), 42, 0.04, { heap: 0.001, scale: [0.5, 1.4], colors: ['#fffdf6', '#ecdfc2'] })); return g; },
-  pepper: () => { const g = new THREE.Group();
-    g.add(scatter(new THREE.IcosahedronGeometry(0.0012, 0), food('#ffffff'), 110, 0.036, { heap: 0.001, scale: [0.6, 1.5], colors: ['#16110d', '#4a3d30'] })); return g; },
-  moyashi: () => { const g = new THREE.Group();
-    const stems = [], heads = [];
+    g.add(scatter(V, geo, food('#ffffff', { spec: 0.4 }), 70, 0.03, { tilt: 0.3, colors: ['#f4e3bb', '#d6b177'] }));
+    g.add(scatter(V, geo, food('#2a2016', { spec: 0.4 }), 10, 0.03, { tilt: 0.3 })); return g; },
+  seabura: (V) => { const g = new THREE.Group();
+    g.add(scatter(V, new THREE.IcosahedronGeometry(0.0024, 1), food('#ffffff', { opacity: 0.94, spec: 0.6, gloss: 30 }), 42, 0.04, { scale: [0.5, 1.4], colors: ['#fffdf6', '#ecdfc2'] })); return g; },
+  pepper: (V) => { const g = new THREE.Group();
+    g.add(scatter(V, new THREE.IcosahedronGeometry(0.0012, 0), food('#ffffff'), 110, 0.036, { scale: [0.6, 1.5], colors: ['#16110d', '#4a3d30'] })); return g; },
+  moyashi: (V) => { const g = new THREE.Group(); const sprouts = [];
     for (let i = 0; i < 16; i++){
-      const a = rnd(0, TAU), b = a + rnd(-0.6, 0.6), l = rnd(0.018, 0.028);
-      const p0 = new THREE.Vector3(rnd(-0.015, 0.015), rnd(0.002, 0.007), rnd(-0.015, 0.015));
-      const p2 = new THREE.Vector3(p0.x + Math.cos(b) * l, p0.y + rnd(-0.002, 0.004), p0.z + Math.sin(b) * l);
+      const b = rnd(0, TAU), l = rnd(0.018, 0.028);
+      const p0 = new THREE.Vector3(-Math.cos(b) * l / 2, 0.002, -Math.sin(b) * l / 2), p2 = new THREE.Vector3(Math.cos(b) * l / 2, rnd(0.0, 0.003), Math.sin(b) * l / 2);
       const p1 = p0.clone().lerp(p2, 0.5).add(new THREE.Vector3(rnd(-0.004, 0.004), 0.004, rnd(-0.004, 0.004)));
-      stems.push(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, p2), 10, 0.0016, 6));
-      const h = new THREE.SphereGeometry(0.0019, 8, 6); h.scale(1, 0.75, 1.3); h.translate(p0.x, p0.y, p0.z); heads.push(h);
+      const stem = paint(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(p0, p1, p2), 10, 0.0016, 6), '#efe5c8');
+      const head = new THREE.SphereGeometry(0.0021, 8, 6); head.scale(1, 0.75, 1.3); head.translate(p0.x, p0.y, p0.z); paint(head, '#e4cc5e');
+      const one = mergeGeometries([stem, head]); stem.dispose(); head.dispose();
+      sprouts.push(placeGeo(V, one, disc(0.02)));
     }
-    g.add(new THREE.Mesh(mergeGeometries(stems), food('#efe5c8', { spec: 0.35, gloss: 30 })));
-    g.add(new THREE.Mesh(mergeGeometries(heads), food('#e4cc5e', { spec: 0.3 })));
-    [...stems, ...heads].forEach((x) => x.dispose()); return g; },
-  menma: () => { const g = new THREE.Group(); const m = food('#ffffff', { map: TEX.menma(), spec: 0.3, gloss: 26 });
+    const m = food('#ffffff', { spec: 0.35, gloss: 30 }); m.vertexColors = true;
+    g.add(new THREE.Mesh(mergeGeometries(sprouts), m)); sprouts.forEach((x) => x.dispose()); return g; },
+  menma: (V) => { const g = new THREE.Group(); const m = food('#ffffff', { map: TEX.menma(), spec: 0.3, gloss: 26 });
     for (let i = 0; i < 6; i++){
       const geo = new THREE.BoxGeometry(rnd(0.0055, 0.0075), 0.0032, rnd(0.024, 0.03), 1, 1, 8);
       const p = geo.attributes.position, k = rnd(-6, 6);
       for (let j = 0; j < p.count; j++) p.setY(j, p.getY(j) + k * p.getZ(j) ** 2);
       geo.computeVertexNormals();
-      const b = piece(geo, m);
-      b.position.set(rnd(-0.01, 0.01), 0.002 + i * 0.0024, rnd(-0.006, 0.006)); b.rotation.set(rnd(-0.1, 0.1), rnd(-0.9, 0.9), rnd(-0.12, 0.12)); g.add(b);
+      const b = piece(geo, m); b.rotation.set(rnd(-0.08, 0.08), rnd(0, TAU), rnd(-0.1, 0.1));
+      place(V, g, b, disc(0.014));
     } return g; },
-  porkBelly: () => { const g = new THREE.Group();
+  porkBelly: (V) => { const g = new THREE.Group();
     const sideM = food('#ffffff', { map: TEX.bellySide() }), topM = food('#ffffff', { map: TEX.bellyTop(), spec: 0.45, gloss: 30 }), botM = food('#8a4524');
     for (let i = 0; i < 2; i++){
       const p = piece(droop(new THREE.BoxGeometry(0.028, 0.0085, 0.017, 10, 1, 1), 9), [sideM, sideM, topM, botM, sideM, sideM]);
-      p.position.set(i * 0.014 - 0.007, 0.0038 + i * 0.005, i * 0.01 - 0.005); p.rotation.set(0.35, rnd(-0.6, 0.6), (i ? -1 : 1) * 0.08); g.add(p);
+      p.rotation.set(i ? 0.25 : 0, rnd(-0.6, 0.6), 0);
+      place(V, g, p, [i * 0.012 - 0.006, i * 0.009 - 0.004]);
     } return g; },
   nori: () => { const g = new THREE.Group(); // stands up against the rim, the classic look
     const geo = new THREE.BoxGeometry(0.038, 0.05, 0.0012, 8, 8, 1);
@@ -521,62 +654,66 @@ const TOPPINGS = {
     geo.computeVertexNormals();
     const dark = food('#1d2219'), face = food('#ffffff', { map: TEX.nori(), spec: 0.25, gloss: 18 });
     const s = piece(geo, [dark, dark, dark, dark, face, face]); s.position.y = 0.022; s.rotation.x = -0.35; g.add(s); return g; },
-  naruto: () => { const g = new THREE.Group(); const R0 = 0.018, s = new THREE.Shape();
+  naruto: (V) => { const g = new THREE.Group(); const R0 = 0.018, s = new THREE.Shape();
     for (let i = 0; i <= 96; i++){ const a = (i / 96) * TAU, r = R0 * (1 + 0.05 * Math.cos(a * 18)); i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
     const geo = planarUV(new THREE.ExtrudeGeometry(s, { depth: 0.0035, bevelEnabled: true, bevelThickness: 0.0006, bevelSize: 0.0006, bevelSegments: 2, curveSegments: 4 }));
     geo.rotateX(-Math.PI / 2);
     const d = piece(geo, [food('#ffffff', { map: TEX.naruto(), spec: 0.2 }), food('#f6eee0', { spec: 0.15 })]);
-    d.position.y = 0.0006; d.rotation.x = 0.12; g.add(d); return g; },
-  kamaboko: () => { const g = new THREE.Group(); const w = 0.036, h = 0.017;
+    d.rotation.set(0.12, rnd(0, TAU), 0); place(V, g, d, [0, 0]); return g; },
+  // two half-moon slices, the second leaning on the first
+  kamaboko: (V) => { const g = new THREE.Group(); const w = 0.036, h = 0.017;
     const face = food('#ffffff', { map: TEX.kamaboko(), spec: 0.2 }), side = food('#ee8ea3', { spec: 0.15 });
     for (let i = 0; i < 2; i++){
       const s = new THREE.Shape(); s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.absellipse(0, 0, w / 2, h, 0, Math.PI, false);
       const geo = planarUV(new THREE.ExtrudeGeometry(s, { depth: 0.0045, bevelEnabled: true, bevelThickness: 0.0005, bevelSize: 0.0005, bevelSegments: 2, curveSegments: 24 }));
-      geo.rotateX(-Math.PI / 2); geo.translate(0, 0.0005, h / 2);
+      geo.rotateX(-Math.PI / 2); geo.translate(0, 0, h / 2);
       const k = piece(geo, [face, side]);
-      k.position.set(i * 0.006, i * 0.004, i * -0.008); k.rotation.set(i * 0.15, i * 0.35, 0); g.add(k);
+      k.rotation.set(i ? 0.22 : 0, i * 0.35, 0);
+      place(V, g, k, [i * 0.006, i * -0.009]);
     } return g; },
-  beniShoga: () => { const g = new THREE.Group();
-    g.add(scatter(new THREE.BoxGeometry(0.0015, 0.0011, 0.013), food('#ffffff', { spec: 0.5, gloss: 30 }), 46, 0.016, { tilt: 0.5, heap: 0.008, colors: ['#d01d3a', '#f0566d'] })); return g; },
-  kikurage: () => { const g = new THREE.Group(); const geos = [];
+  beniShoga: (V) => { const g = new THREE.Group();
+    g.add(scatter(V, new THREE.BoxGeometry(0.0015, 0.0011, 0.013), food('#ffffff', { spec: 0.5, gloss: 30 }), 44, 0.016, { tilt: 0.25, colors: ['#d01d3a', '#f0566d'] })); return g; },
+  kikurage: (V) => { const g = new THREE.Group(); const geos = [];
     for (let i = 0; i < 9; i++){
-      const a = rnd(0, TAU), x = rnd(-0.012, 0.012), z = rnd(-0.012, 0.012), l = rnd(0.018, 0.028), y = 0.006 + i * 0.0035;
-      const pts = [];
+      const a = rnd(0, TAU), l = rnd(0.018, 0.028), pts = [];
       for (let k = 0; k <= 6; k++){
-        const t = k / 6 - 0.5, side = Math.sin(t * 7 + i) * 0.0015;
-        pts.push(new THREE.Vector3(x + Math.cos(a) * t * l + Math.sin(a) * side, y + Math.sin(t * 9 + i) * 0.003, z + Math.sin(a) * t * l - Math.cos(a) * side));
+        const t = k / 6 - 0.5, sd = Math.sin(t * 7 + i) * 0.0015;
+        pts.push(new THREE.Vector3(Math.cos(a) * t * l + Math.sin(a) * sd, Math.sin(t * 9 + i) * 0.003, Math.sin(a) * t * l - Math.cos(a) * sd));
       }
-      const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0024, 6); tg.scale(1, 0.35, 1); geos.push(tg);
+      const tg = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.0024, 6); tg.scale(1, 0.35, 1);
+      geos.push(placeGeo(V, tg, disc(0.016)));
     }
     g.add(piece(mergeGeometries(geos), food('#2b1d16', { spec: 0.55, gloss: 30 }))); geos.forEach((x) => x.dispose()); return g; },
-  garlicChips: () => { const g = new THREE.Group();
-    g.add(scatter(wobble(new THREE.CylinderGeometry(0.0058, 0.0058, 0.0009, 20), 0.08), food('#ffffff', { map: TEX.garlic(), spec: 0.25 }), 16, 0.02, { tilt: 0.5, heap: 0.006, colors: ['#ffffff', '#e8cfa6'] })); return g; },
-  mayu: () => { const g = new THREE.Group(); const m = food('#17100b', { opacity: 0.94, spec: 0.9, gloss: 50 });
-    for (let i = 0; i < 6; i++){
-      const r = i ? rnd(0.004, 0.009) : 0.017, a = rnd(0, TAU), d = i ? rnd(0.016, 0.03) : 0;
-      const p = new THREE.Mesh(new THREE.ShapeGeometry(noisyShape(r, 0.25), 24), m);
-      p.rotation.x = -Math.PI / 2; p.position.set(Math.cos(a) * d, 0.0007 + i * 0.00005, Math.sin(a) * d); g.add(p);
+  garlicChips: (V) => { const g = new THREE.Group();
+    g.add(scatter(V, wobble(new THREE.CylinderGeometry(0.0058, 0.0058, 0.0009, 20), 0.08), food('#ffffff', { map: TEX.garlic(), spec: 0.25 }), 16, 0.02, { tilt: 0.4, colors: ['#ffffff', '#e8cfa6'] })); return g; },
+  // little pools of black garlic oil
+  mayu: (V) => { const g = new THREE.Group(); const m = food('#17100b', { opacity: 0.94, spec: 0.9, gloss: 50 });
+    const pools = [];
+    for (let i = 0; i < 11; i++){
+      const geo = new THREE.ShapeGeometry(noisyShape(i ? rnd(0.003, 0.007) : 0.01, 0.25), 20); geo.rotateX(-Math.PI / 2);
+      pools.push(placeGeo(V, geo, i ? () => { const a = rnd(0, TAU), d = rnd(0.008, 0.03); return [Math.cos(a) * d, Math.sin(a) * d]; } : [0, 0]));
     }
-    const glint = new THREE.Mesh(new THREE.CircleGeometry(0.006, 24), mat('#ffffff', { flat: true, opacity: 0.22 }));
-    glint.rotation.x = -Math.PI / 2; glint.scale.set(1, 0.4, 1); glint.position.set(-0.004, 0.001, -0.005); g.add(glint); return g; },
-  spinach: () => { const g = new THREE.Group();
+    g.add(new THREE.Mesh(mergeGeometries(pools), m)); pools.forEach((x) => x.dispose()); return g; },
+  spinach: (V) => { const g = new THREE.Group();
     const m = food('#ffffff', { map: TEX.leaf('spinachLeaf', '#3f7a2e', '#6fa64e', '#244d1c'), side: THREE.DoubleSide, spec: 0.35, gloss: 22 });
     for (let i = 0; i < 6; i++){
       const l = new THREE.Mesh(leafGeo(rnd(0.026, 0.034), rnd(0.012, 0.016), 0.25), m);
-      l.position.set(rnd(-0.004, 0.004), 0.002 + i * 0.0016, rnd(-0.004, 0.004)); l.rotation.y = (i / 6) * TAU + rnd(-0.3, 0.3); g.add(l);
-    }
-    const stems = [];
-    for (let i = 0; i < 4; i++){ const a = rnd(0, TAU); stems.push(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0.012, 0), new THREE.Vector3(Math.cos(a) * 0.006, 0.014, Math.sin(a) * 0.006), new THREE.Vector3(Math.cos(a) * 0.014, 0.008, Math.sin(a) * 0.014)), 8, 0.0012, 5)); }
-    g.add(new THREE.Mesh(mergeGeometries(stems), food('#8dbb5a', { spec: 0.3 }))); stems.forEach((x) => x.dispose()); return g; },
-  wakame: () => { const g = new THREE.Group();
+      l.rotation.y = (i / 6) * TAU + rnd(-0.3, 0.3);
+      place(V, g, l, disc(0.012));
+    } return g; },
+  wakame: (V) => { const g = new THREE.Group();
     const m = food('#ffffff', { map: TEX.leaf('wakameLeaf', '#2f5b2a', '#4f8040', '#1b3a18'), side: THREE.DoubleSide, opacity: 0.94, spec: 0.6, gloss: 30 });
     for (let i = 0; i < 5; i++){
       const l = new THREE.Mesh(leafGeo(rnd(0.03, 0.038), rnd(0.008, 0.011), 1), m);
-      l.position.set(rnd(-0.005, 0.005), 0.002 + i * 0.0018, rnd(-0.005, 0.005)); l.rotation.y = (i / 5) * TAU + rnd(-0.4, 0.4); g.add(l);
+      l.rotation.y = (i / 5) * TAU + rnd(-0.4, 0.4);
+      place(V, g, l, disc(0.014));
     } return g; },
 };
-const toppingMesh = (id) => TOPPINGS[id]();
-const SLOTS = [[-2.2, 0.6], [0.5, 0.6], [2.4, 0.58], [-0.85, 0.64], [1.5, 0.64]];
+const toppingMesh = (id, V = freshView()) => TOPPINGS[id](V);
+// Topping spots around the bowl (angle, distance as a share of the broth radius), spaced so
+// neighbours don't crowd; the first ones face the camera. Nori stands at the back rim.
+const SLOTS = [[0.4, 0.58], [1.5, 0.58], [-0.7, 0.58], [2.6, 0.58], [-1.8, 0.58]];
+const NORI_SPOT = [-2.74, 0.8];
 
 // A token: the ingredient standing on a little plate, as on its icon.
 function tokenModel(id, { plate = true } = {}){
@@ -663,7 +800,7 @@ export const bowlPicture = (px = 320) => (R.bowl ? snap(R.bowl, px, 1.04) : null
 const R = {
   renderer: null, scene: new THREE.Scene(), camera: null, canvas: null, container: null,
   world: new THREE.Group(), bowlSpot: new THREE.Group(), tokensRoot: new THREE.Group(), fx: new THREE.Group(),
-  counter: null, bowl: null, contents: null, tokens: [], steam: [], steamOn: false, hintIds: null,
+  counter: null, bowl: null, contents: null, tokens: [], steam: [], steamOn: false, pile: null,
   pick: null, lastT: 0, running: false, layout: null, zoom: 600,
   view: { az: 0, el: 0, dragAz: 0, dragEl: 0, gyroAz: 0, gyroEl: 0, gyro0: null },
   mindar: null, video: null, labels: null,
@@ -777,6 +914,7 @@ export function newBowl(){
   R.bowl.add(R.contents);
   R.bowlSpot.add(R.bowl);
   R.toppingCount = 0;
+  R.pile = null;
   R.steamOn = false;
   const b = R.bowl;
   tw(0.55, EASE.back, (k) => { b.position.y = (1 - k) * 0.15; b.scale.setScalar(0.6 + 0.4 * k); });
@@ -791,20 +929,26 @@ function addToBowl(id){
     tw(0.5, EASE.out, (k) => { br.position.y = -0.03 * (1 - k); br.scale.setScalar(0.3 + 0.7 * k); });
     R.steamOn = true;
   } else if (ing.layer === 'noodles'){
-    const nd = noodleMesh(id, BOWL.brothR * 0.7);
+    const nd = noodleMesh(id, BOWL.brothR * 0.78);
     R.contents.add(nd);
     const sy = nd.scale.y;
+    // the noodles' real shape becomes the ground the toppings rest on
+    R.pile = new Pile(BOWL.brothR * 1.05, 0.0018, 0.0004);
+    R.pile.addBoxes(triBoxes(nd.geometry, new THREE.Matrix4().makeScale(1, sy, 1)));
     tw(0.45, EASE.back, (k) => { nd.position.y = (1 - k) * 0.05; nd.scale.y = Math.max(0.05, k) * sy; });
   } else {
-    const t = toppingMesh(id);
-    const [a, d] = id === 'nori' ? [-Math.PI * 0.75, 0.78] : SLOTS[R.toppingCount++ % SLOTS.length];
-    const spread = ['seabura', 'pepper', 'sesame'].includes(id);
-    const y0 = spread ? 0.011 : 0.008; // rest on top of the noodle mound
-    t.position.set(spread ? 0 : Math.cos(a) * d * BOWL.brothR, y0, spread ? 0 : Math.sin(a) * d * BOWL.brothR);
-    if (id === 'nori') t.rotation.y = -a - Math.PI / 2;
-    else if (!spread) t.rotation.y = rnd(0, TAU);
+    const nori = id === 'nori';
+    const spread = ['seabura', 'pepper', 'sesame'].includes(id); // sprinkled over everything
+    const [a, d] = nori ? NORI_SPOT : spread ? [0, 0] : SLOTS[R.toppingCount++ % SLOTS.length];
+    const x = Math.cos(a) * d * BOWL.brothR, z = Math.sin(a) * d * BOWL.brothR;
+    const big = spread ? 1.4 : 1.6; // toppings read at bowl size
+    if (!R.pile) R.pile = new Pile(BOWL.brothR * 1.05, 0.0018, 0.0004);
+    // every piece is dropped onto the noodles and the toppings already there
+    const t = nori ? toppingMesh(id) : toppingMesh(id, pileView(R.pile, x, 0, z, big));
+    const y0 = nori ? 0.004 : 0;
+    t.position.set(x, y0, z);
+    if (nori) t.rotation.y = -a - Math.PI / 2;
     R.contents.add(t);
-    const big = spread ? 1.4 : 1.75; // toppings read at bowl size
     tw(0.4, EASE.back, (k) => { t.position.y = y0 + (1 - k) * 0.05; t.scale.setScalar(big * (0.4 + 0.6 * k)); });
   }
 }
@@ -816,15 +960,12 @@ export function setTokens(ids){
     const node = new THREE.Group();
     const model = tokenModel(id);
     node.add(model);
-    const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.07, 12), new THREE.MeshBasicMaterial({ visible: false }));
-    hit.position.y = 0.03;
-    node.add(hit);
     const label = document.createElement('div');
     label.className = 'tlabel';
     label.textContent = SHORT[id];
     R.labels.appendChild(label);
-    const tok = { id, node, model, hit, label, home: new THREE.Vector3(), alive: true, entering: true, scale: 1, phase: Math.random() * TAU, shake: 0 };
-    hit.userData.token = tok;
+    const tok = { id, node, model, label, home: new THREE.Vector3(), alive: true, entering: true, scale: 1, phase: Math.random() * TAU, shake: 0 };
+    model.userData.token = tok; // taps are found on the model itself (the food and its plate)
     R.tokensRoot.add(node);
     return tok;
   });
@@ -843,7 +984,6 @@ export function clearTokens(){
   }
   R.tokens = [];
 }
-export function hint(ids){ R.hintIds = ids; }
 
 export function acceptToken(id){
   const tok = R.tokens.find((t) => t.id === id && t.alive);
@@ -931,7 +1071,8 @@ export function setLayoutBounds(top, bottom){ R.layoutTop = top; R.layoutBottom 
 // ------------------------------------------------------------------ input: tap a token, drag to turn the view
 let down = null;
 function onDown(ev){
-  if (!R.running || ev.target.closest('button, .plate, .hud, .ordercard, .screen.on')) return;
+  // the ingredient names are labels, not buttons: a touch on one does nothing
+  if (!R.running || ev.target.closest('button, .plate, .hud, .ordercard, .screen.on, .tlabel')) return;
   down = { x: ev.clientX, y: ev.clientY, az: R.view.dragAz, el: R.view.dragEl, moved: false };
 }
 function onMove(ev){
@@ -948,13 +1089,17 @@ function onUp(ev){
   const tap = !down.moved;
   down = null;
   if (!tap || !R.pick) return;
-  const hits = R.tokens.filter((t) => t.alive).map((t) => t.hit);
-  // the touch point first, then a ring around it — fingers are bigger than pixels
-  for (const [dx, dy] of [[0, 0], [16, 0], [-16, 0], [0, 16], [0, -16], [24, 24], [-24, -24], [24, -24], [-24, 24]]){
+  // Only the model counts: the ray must hit the food or its plate. The touch point first,
+  // then a small ring around it, since fingers are bigger than pixels.
+  const models = R.tokens.filter((t) => t.alive).map((t) => t.model);
+  for (const [dx, dy] of [[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]]){
     ndc.set(((ev.clientX + dx) / innerWidth) * 2 - 1, -((ev.clientY + dy) / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, R.camera);
-    const h = ray.intersectObjects(hits, false)[0];
-    if (h){ R.pick(h.object.userData.token.id); return; }
+    for (const h of ray.intersectObjects(models, true)){
+      let o = h.object;
+      while (o && !o.userData.token) o = o.parent;
+      if (o?.userData.token?.alive){ R.pick(o.userData.token.id); return; }
+    }
   }
 }
 function onGyro(e){
@@ -981,8 +1126,7 @@ function frame(){
   aimCamera();
   for (const tok of R.tokens){
     if (!tok.alive) continue;
-    const hinted = R.hintIds && R.hintIds.includes(tok.id);
-    tok.node.position.y = tok.home.y + Math.sin(t * 1.6 + tok.phase) * 0.004 + (hinted ? 0.012 + Math.abs(Math.sin(t * 6)) * 0.02 : 0);
+    tok.node.position.y = tok.home.y + Math.sin(t * 1.6 + tok.phase) * 0.004; // the same gentle float for every plate, no hints
     tok.model.rotation.y = t * 0.4 + tok.phase;
     if (tok.shake > 0){
       tok.shake = Math.max(0, tok.shake - dt);
