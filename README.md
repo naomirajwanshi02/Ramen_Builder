@@ -29,7 +29,7 @@ over Japan, layer by layer, against the clock. Made for ages 8–15.
 | **Mistakes** | A wrong ingredient or the wrong layer (noodles before broth) takes 1.5 s off the clock and breaks your combo. It doesn't cost a life. |
 | **Combo / multiplier** | Every **perfect bowl** in a row (no wrong taps) adds 1 to the multiplier, up to ×5. One mistake, or a bowl that goes cold, resets it to ×1. |
 | **Score** | Always a multiple of 10. Each ingredient is +10. Serving a bowl adds (100 + up to 150 speed bonus + 50 for a perfect bowl) × multiplier. Points fly into the counter, and the counter rolls and **locks** with a click. |
-| **Game over** | The final score's digits spin and lock one at a time, then a 完 (finished) hanko seal stamps it. Your best score is saved on your phone. |
+| **Game over** | The final score's digits spin and lock one at a time, then a red LOCKED seal stamps it. Your best score is saved on your phone. |
 | **One ramp, ages 8–15** | There are no difficulty levels. The game starts gentle and speeds up with every bowl. Orders grow from a few toppings to the full regional recipe, and decoys go from 2 up to 7. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. After 6 s with no progress, the wanted ingredients hop to help. |
 
 ## The 12 regional bowls

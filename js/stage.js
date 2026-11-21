@@ -577,7 +577,7 @@ export function setTokens(ids){
     node.add(hit);
     const label = document.createElement('div');
     label.className = 'tlabel';
-    label.innerHTML = `${SHORT[id]}<small>${INGREDIENTS[id].layer === 'topping' ? 'topping' : INGREDIENTS[id].layer}</small>`;
+    label.textContent = SHORT[id];
     R.labels.appendChild(label);
     const tok = { id, node, model, hit, label, home: new THREE.Vector3(), alive: true, entering: true, scale: 1, phase: Math.random() * TAU, shake: 0 };
     hit.userData.token = tok;

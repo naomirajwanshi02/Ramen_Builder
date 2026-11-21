@@ -216,7 +216,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
 .stats div{background:var(--anatomy-shade-3);border-radius:10px;padding:8px 2px;box-shadow:inset 0 0 0 1px var(--anatomy-faint)}
 .stats b{display:block;font:900 20px/1.1 var(--anatomy-mono);color:var(--anatomy-strong)}
-.stats span{font-family:var(--anatomy-mono);font-size:8.5px;letter-spacing:.1em;color:var(--anatomy-muted);text-transform:uppercase}
+.stats span{font-size:13px;font-weight:700;color:var(--anatomy-text)}
 .learned{margin-top:12px;font-size:13px}
 .over-actions{display:flex;gap:8px;justify-content:center;margin-top:16px}
 .over-actions .btn{flex:1}

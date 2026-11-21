@@ -83,7 +83,7 @@ function addScore(points, { lock = false } = {}){
 function renderMult(bumped){
   const m = $('mult');
   m.dataset.m = S.mult;
-  m.innerHTML = `<div>×${S.mult}<small>${S.combo ? `${S.combo} perfect` : 'combo'}</small></div>`;
+  m.innerHTML = `<div>×${S.mult}</div>`;
   if (bumped){ m.classList.remove('bump'); void m.offsetWidth; m.classList.add('bump'); }
 }
 const LIFE = `<svg viewBox="0 0 24 24"><path d="M2 10h20q-1 10-10 11Q3 20 2 10Z" fill="#f6eddb" stroke="#3b2a1c" stroke-width="1.5"/><path d="M4 10q8 3 16 0" fill="none" stroke="#b5452f" stroke-width="1.2"/><path d="M8 7q-1-3 1-5M12 7q-1-3 1-5M16 7q-1-3 1-5" fill="none" stroke="#8c7457" stroke-width="1.2" stroke-linecap="round"/></svg>`;
@@ -146,8 +146,6 @@ function newOrder(){
   S.timeMax = perStep * S.need.length + 3; // +3s to read the order and look around the ring
   S.timeLeft = S.timeMax;
 
-  $('ordNo').textContent = `Order ${String(S.served + 1).padStart(2, '0')}`;
-  $('ordPlace').textContent = r.place;
   $('ordName').textContent = r.name;
   AR.newBowl();
   AR.setTokens(shuffle([...S.need, ...decoys]));
@@ -167,18 +165,12 @@ function renderTicket(){
     const sep = i === 1 || i === 2 ? '<span class="sep"></span>' : '';
     return `${sep}<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${ingredientSvg(id, { size: 48 })}<span>${SHORT[id]}</span></div>`;
   }).join('');
-  const got = S.need.filter(have).length;
-  $('ordRead').textContent = `${got}/${S.need.length}`;
-  const nextIds = S.need.filter((id) => !have(id) && INGREDIENTS[id].layer === layer);
-  $('hint').innerHTML = got === S.need.length ? 'Order up!'
-    : `Tap the <b>${layer === 'topping' ? 'toppings' : SHORT[nextIds[0]] + ' ' + LAYER_NAME[layer].toLowerCase()}</b>`;
 }
 
 // ------------------------------------------------------------ picking an ingredient in AR
 function onPick(id){
   if (S.phase !== 'play') return;
   sound.unlock();
-  $('dragHint').style.opacity = '0';
   const ing = INGREDIENTS[id];
   const layer = nextLayer();
   const inRecipe = S.need.includes(id);
@@ -313,7 +305,6 @@ function startGame({ tour = false } = {}){
   resetGame();
   show(null);
   overlay('hud', true);
-  $('dragHint').style.opacity = '';
   newOrder();
   if (tour){ S.phase = 'intro'; setTimeout(showTour, 1100); } // the clock waits until the tour is done
 }
@@ -321,13 +312,13 @@ function startGame({ tour = false } = {}){
 // ------------------------------------------------------------ how to play
 // A short spotlight tour over the real first order, so every part is pointed at where it is.
 const TOUR = [
-  { title: '📋 Your order', text: 'This is the ramen to cook. Add the ingredients <b>left to right</b>; each one gets a ✓. Finish before the <b>timer bar</b> runs out!',
+  { title: 'Your order', text: 'This is the ramen to cook. Add the ingredients <b>left to right</b>; each one gets a ✓. Finish before the <b>timer bar</b> runs out!',
     rect: () => $('order').getBoundingClientRect() },
-  { title: '🍜 Your bowl', text: 'Everything you pick jumps into this bowl. When it\'s full, it\'s <b>served automatically</b> and the next order comes in.',
+  { title: 'Your bowl', text: 'Everything you pick jumps into this bowl. When it\'s full, it\'s <b>served automatically</b> and the next order comes in.',
     rect: () => AR.bowlRect() },
-  { title: '👆 The ingredients', text: 'Tap a plate to add it. Always <b>broth first</b>, then <b>noodles</b>, then the <b>toppings</b>. A wrong tap costs time!',
+  { title: 'The ingredients', text: 'Tap a plate to add it. Always <b>broth first</b>, then <b>noodles</b>, then the <b>toppings</b>. A wrong tap costs time!',
     rect: () => AR.tokensRect() },
-  { title: '⭐ Score, combo & lives', text: 'Every <b>perfect bowl</b> in a row raises your multiplier, up to <b>×5</b>. A bowl that goes cold costs one of your <b>3 lives</b>. It gets faster as you go!',
+  { title: 'Score, combo & lives', text: 'Every <b>perfect bowl</b> in a row raises your multiplier, up to <b>×5</b>. A bowl that goes cold costs one of your <b>3 lives</b>. It gets faster as you go!',
     rect: () => document.querySelector('.hud.top').getBoundingClientRect() },
 ];
 let tourStep = 0;
@@ -360,7 +351,7 @@ function endTour(){
   S.idle = 0;
   S.phase = 'play';
   sound.unlock();
-  popup('いただきます!', 'big', 0.4);
+  popup('Go!', 'big', 0.4);
 }
 $('coachNext').addEventListener('click', () => {
   sound.unlock();
@@ -376,8 +367,6 @@ function gameOver(){
   const best = store.get('best', 0);
   const isBest = S.score > best;
   if (isBest) store.set('best', S.score);
-  $('overOrders').textContent = `${S.served} orders`;
-  $('overBest').textContent = `best ${Math.max(best, S.score)}`;
   $('stBowls').textContent = S.served;
   $('stCombo').textContent = S.maxCombo;
   $('stMult').textContent = `×${S.maxMult}`;
