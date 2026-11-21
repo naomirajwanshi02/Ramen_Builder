@@ -1,6 +1,6 @@
 // Ramen_Builder — game rules, scoring and HUD. The 3D stage lives in stage.js.
 import { INGREDIENTS, RECIPES, PACE, LAYER_NAME, SHORT } from './data.js';
-import { ingredientSvg } from './art.js';
+import { ingredientSvg, bowlSvg } from './art.js';
 import * as AR from './stage.js';
 
 const $ = (id) => document.getElementById(id);
@@ -156,6 +156,8 @@ function newOrder(){
 }
 
 const have = (id) => S.bowl.broth === id || S.bowl.noodles === id || S.bowl.toppings.includes(id);
+// the ticket shows each ingredient rendered from its 3D model (the drawn icon is only a fallback)
+const chipIcon = (id) => { const url = AR.iconUrl(id); return url ? `<img src="${url}" alt="">` : ingredientSvg(id, { size: 48 }); };
 const nextLayer = () => (!S.bowl.broth ? 'broth' : !S.bowl.noodles ? 'noodles' : 'topping');
 function renderTicket(){
   const layer = nextLayer();
@@ -163,7 +165,7 @@ function renderTicket(){
     const done = have(id);
     const next = !done && INGREDIENTS[id].layer === layer;
     const sep = i === 1 || i === 2 ? '<span class="sep"></span>' : '';
-    return `${sep}<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${ingredientSvg(id, { size: 48 })}<span>${SHORT[id]}</span></div>`;
+    return `${sep}<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${chipIcon(id)}<span>${SHORT[id]}</span></div>`;
   }).join('');
 }
 
@@ -248,10 +250,39 @@ async function serve(){
     renderMult(bumped);
     if (bumped) setTimeout(() => { sound.combo(m); popup(`${S.combo} perfect in a row!  ×${m}`, 'big', 0.62); }, 500);
   }
-  toast(`<b>${S.recipe.name}</b> — ${S.recipe.fact}`);
+  const made = { ...S.bowl, toppings: [...S.bowl.toppings] };
+  let picture = null;
+  try { picture = AR.bowlPicture(320); } catch { /* the drawn bowl is used instead */ }
   AR.clearTokens();
   await AR.serveBowl();
+  if (S.phase !== 'serving') return;
+  await showFact(S.recipe, made, picture);
   if (S.phase === 'serving') newOrder();
+}
+
+// After a bowl is served the clock is stopped and a card tells you about that region's ramen
+// for a couple of seconds (tap to skip), so the fact never covers a running order.
+const FACT_MS = 2600;
+function showFact(recipe, made, picture){
+  return new Promise((done) => {
+    $('factBowl').innerHTML = picture ? `<img src="${picture}" alt="">` : bowlSvg(made);
+    $('factName').textContent = recipe.name;
+    $('factPlace').textContent = recipe.place;
+    $('factText').textContent = recipe.fact;
+    $('fact').style.setProperty('--fact-ms', `${FACT_MS}ms`);
+    overlay('fact', true);
+    let over = false;
+    const finish = () => {
+      if (over) return;
+      over = true;
+      clearTimeout(t);
+      $('fact').removeEventListener('pointerdown', finish);
+      overlay('fact', false);
+      setTimeout(done, 200);
+    };
+    const t = setTimeout(finish, FACT_MS);
+    $('fact').addEventListener('pointerdown', finish);
+  });
 }
 
 async function timeout(){
@@ -450,7 +481,6 @@ addEventListener('pointerdown', () => { sound.unlock(); AR.askMotion(); }, { onc
 
 // ------------------------------------------------------------ wiring
 $('scanRetry').addEventListener('click', () => rescan(false));
-$('scanSkip').addEventListener('click', () => rescan(true));
 $('pauseBtn').addEventListener('click', pause);
 $('resumeBtn').addEventListener('click', resume);
 $('quitBtn').addEventListener('click', () => { show(null); gameOver(); });

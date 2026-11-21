@@ -38,8 +38,6 @@
     <div class="status" id="scanStatus">Starting camera…</div>
     <div class="row">
       <button class="btn ghost small" id="scanRetry" hidden>Try again</button>
-      <a class="btn ghost small" href="target.png" target="_blank" rel="noopener">Get the picture</a>
-      <button class="btn ghost small" id="scanSkip">No card? Demo</button>
     </div>
   </div>
 </div>
@@ -120,6 +118,17 @@
       <button class="link" id="coachSkip">Skip</button>
       <button class="btn red small" id="coachNext">Next</button>
     </div>
+  </div>
+</div>
+
+<!-- ============ BOWL SERVED: a short pause between orders with a fact about the region ============ -->
+<div id="fact" class="overlay">
+  <div class="plate factcard" id="factCard">
+    <div class="factbowl" id="factBowl"></div>
+    <div class="factname" id="factName"></div>
+    <div class="factplace" id="factPlace"></div>
+    <p class="facttext" id="factText"></p>
+    <div class="factbar"><b id="factBar"></b></div>
   </div>
 </div>
 

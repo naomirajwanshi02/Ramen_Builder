@@ -5,7 +5,7 @@ the shop opens and the orders start coming. Build regional ramen bowls from all
 over Japan, layer by layer, against the clock. Made for ages 8–15.
 
 **Play:** https://naomirajwanshi02.github.io/Ramen_Builder/
-**Without the picture:** https://naomirajwanshi02.github.io/Ramen_Builder/?demo=1
+**Without the picture (for testing):** https://naomirajwanshi02.github.io/Ramen_Builder/?demo=1. The viewfinder itself has no demo or download buttons.
 **The picture to scan:** [`target.png`](target.png), the painted ramen bowl (original in [`assets/ramen-painting.jpg`](assets/ramen-painting.jpg))
 
 ## How to play
@@ -19,8 +19,9 @@ over Japan, layer by layer, against the clock. Made for ages 8–15.
 3. An **order** comes in, such as *Sapporo Miso Ramen*, with a big ingredient ticket at the top.
    A 3D bowl stands on its counter, and 3D ingredients wait on little plates below it. Tap them to build
    the bowl the way a ramen cook does: **broth → noodles → toppings** (toppings in any order).
-4. When every ingredient is in, the bowl is **served automatically** and you
-   learn a fact about that region. Then the next order arrives.
+4. When every ingredient is in, the bowl is **served automatically**. After a short beat, a card
+   shows a picture of the bowl you made and a fact about its region for about 2.6 seconds (tap to skip).
+   The clock is stopped while it's up. Then the next order arrives.
 
 | Thing | How it works |
 |---|---|
@@ -76,9 +77,15 @@ sushi picture.
 The look comes from the [Anatomy](https://github.com/wheresryan22/anatomy) skill (MIT):
 
 - The **3D shop is drawn the Anatomy way**, in [`js/stage.js`](js/stage.js). It uses an orthographic camera at Anatomy's
-  azimuth 45° / elevation 30° (2.5D, never top-down) and four-tone flat shading, where the lit top is the exact colour and
-  sides step toward walnut. Every solid has an ink outline. Colours are written raw in sRGB, so each 3D ingredient
-  matches its icon on the order ticket.
+  azimuth 45° / elevation 30° (2.5D, never top-down). The bowl, plates and counter use four-tone flat shading toward walnut,
+  with an ink outline.
+- The **food is modelled after the real thing**, with soft shading, a wet or glossy shine and painted textures:
+  - rolled chashu with a fat spiral, and a halved soy egg with a jammy yolk;
+  - scalloped naruto and half-moon kamaboko;
+  - julienned pickled ginger and wood-ear ribbons;
+  - ruffled spinach and wakame leaves, and glossy black garlic oil.
+  
+  The **order ticket's pictures are rendered from the same 3D models**, so the ticket and the plates always match.
 - The **ramen bowl is an Anatomy turned solid**. One meridian profile goes through
   `lathe.mjs` → `solidOf`, then `iso-kit.mjs` → `solidSvg`, which gives four-tone
   shading, a halo, crease lines and a raimon border on the front half only. The kit
