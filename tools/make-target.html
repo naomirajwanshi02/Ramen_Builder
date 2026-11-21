@@ -92,14 +92,32 @@ async function save(name, blob){
   log(`${name}: ${res.ok ? 'saved' : 'save failed ' + res.status} (${(blob.size / 1024).toFixed(0)} KB)`);
 }
 
-async function draw(){
-  const svg = await targetSvg();
-  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+// ?src=../assets/ramen-painting.jpg uses a painted illustration as the card instead of the
+// generated one (scaled so its longest side is 1400 px, as in the Pagoda project).
+async function fromSource(src){
   const img = new Image();
-  await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
+  await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = src + (src.includes('?') ? '&' : '?') + Date.now(); });
+  const k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
   const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  c.getContext('2d').drawImage(img, 0, 0);
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  log(`illustration ${src}: ${c.width} × ${c.height}`);
+  return c;
+}
+
+async function draw(){
+  const src = new URLSearchParams(location.search).get('src');
+  let c;
+  if (src) c = await fromSource(src);
+  else {
+    const svg = await targetSvg();
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const img = new Image();
+    await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
+    c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    c.getContext('2d').drawImage(img, 0, 0);
+  }
   const blob = await new Promise((ok) => c.toBlob(ok, 'image/png'));
   out.innerHTML = '';
   const shown = new Image(); shown.src = URL.createObjectURL(blob); out.appendChild(shown);

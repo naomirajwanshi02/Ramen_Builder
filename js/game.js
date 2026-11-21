@@ -435,7 +435,7 @@ async function openShop(demo){
   show(null);
   overlay('hud', false);
   $('scanRetry').hidden = true;
-  $('guideTitle').textContent = 'Point your camera at the Ramen Builder card';
+  $('guideTitle').textContent = 'Point your camera at the ramen picture';
   $('scanStatus').textContent = 'Starting camera…';
   overlay('guide', !demo);
   try {
