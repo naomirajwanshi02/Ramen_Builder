@@ -894,6 +894,10 @@ function sparkle(at, color, n = 10){
   for (let i = 0; i < n; i++){
     const p = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true }));
     p.position.copy(at);
+    // Start at sparkle size: the geometry is 1 unit (a whole screen), and a sparkle made
+    // inside another tween's finish isn't stepped until the next frame, which drew one
+    // full-screen yellow frame.
+    p.scale.setScalar(0.007);
     R.bowlSpot.add(p);
     const a = Math.random() * TAU, sp = 0.1 + Math.random() * 0.12;
     const vx = Math.cos(a) * sp, vz = Math.sin(a) * sp, vy = 0.1 + Math.random() * 0.12;
