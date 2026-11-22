@@ -29,8 +29,8 @@ body.ar #ar{display:block}
 #ar canvas.stage{position:absolute;inset:0;z-index:2}
 #ar .labels{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
 #ar .labels .tlabel{pointer-events:auto} /* a touch on a name is caught here and ignored, so it never counts as a tap */
-.tlabel{position:absolute;left:0;top:0;padding:3px 9px 4px;border-radius:999px;background:var(--glass);color:var(--anatomy-strong);
-  font-weight:800;font-size:13px;line-height:1.1;text-align:center;white-space:nowrap;box-shadow:0 0 0 1px var(--anatomy-mid),0 2px 6px #3b2a1c33;
+.tlabel{position:absolute;left:0;top:0;padding:3px 8px 4px;background:var(--glass);color:var(--anatomy-strong);
+  font-weight:800;font-size:13px;line-height:1.1;text-align:center;width:max-content;text-wrap:balance;border-radius:10px;box-shadow:0 0 0 1px var(--anatomy-mid),0 2px 6px #3b2a1c33;
   transition:opacity .25s}
 .tlabel small{display:block;font:600 8.5px/1.2 var(--anatomy-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--anatomy-muted)}
 .tlabel.gone{opacity:0}
@@ -201,6 +201,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .factname{font-size:21px;font-weight:900;color:var(--anatomy-strong);line-height:1.15}
 .factplace{font-size:14px;font-weight:700;color:var(--anatomy-red);margin-top:2px}
 .facttext{margin:10px 0 12px;font-size:15px;line-height:1.4;color:var(--anatomy-text)}
+.factscore{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin:0 0 12px;font-size:14px;font-weight:800;color:var(--anatomy-strong)}
+.factscore:empty{display:none}
+.factscore span{padding:2px 8px;border-radius:999px;box-shadow:0 0 0 1px var(--anatomy-mid)}
+.factscore b{font-size:17px;color:var(--anatomy-red)}
 .factbar{height:5px;border-radius:3px;background:var(--anatomy-shade-3);overflow:hidden}
 .factbar b{display:block;height:100%;background:var(--anatomy-red);transform-origin:left}
 #fact.on .factbar b{animation:drain var(--fact-ms,2600ms) linear forwards}

@@ -15,14 +15,14 @@ over Japan, layer by layer, against the clock. Made for ages 8 to 15.
    with a 4-step how-to-play tour that points at the order, the bowl, the ingredients and the score.
    The clock starts when you tap **Let's cook!**
 2. When the card is recognised, the ramen shop opens over the live camera. **From then on the
-   card isn't needed**: you can move the phone freely. Tilt the phone or drag to look around the 3D shop.
+   card isn't needed**: you can move the phone freely. The shop stays still on the screen, so the plates never drift.
 3. An **order** comes in, such as *Sapporo Miso Ramen*, with a big ingredient ticket at the top.
    A 3D bowl stands on its counter, and 3D ingredients wait on little plates below it. Tap them to build
    the bowl the way a ramen cook does: **broth → noodles → toppings** (toppings in any order).
-   Only the 3D food and its plate count as a tap; the name under it is just a label. There are no hints:
-   every plate floats the same way, so you have to know which ingredient is which.
+   Only the 3D food and its plate count as a tap; the name right under it is just a label. There are no hints:
+   the plates sit still and evenly spaced, so you have to know which ingredient is which.
 4. When every ingredient is in, the bowl is **served automatically**. After a short beat, a card
-   shows a picture of the bowl you made and a fact about its region for about 2.6 seconds (tap to skip).
+   shows a picture of the bowl you made, how its points add up and a fact about its region for about 2.6 seconds (tap to skip).
    The clock is stopped while it's up. Then the next order arrives.
 
 | Thing | How it works |
@@ -31,7 +31,7 @@ over Japan, layer by layer, against the clock. Made for ages 8 to 15.
 | **Lives** | 3 bowls. An order that runs out of time costs one. The game is endless: it ends when all 3 are gone. |
 | **Mistakes** | A wrong ingredient or the wrong layer (noodles before broth) takes 1.5 s off the clock and breaks your combo. It doesn't cost a life. |
 | **Combo / multiplier** | Every **perfect bowl** in a row (no wrong taps) adds 1 to the multiplier, up to ×5. One mistake, or a bowl that goes cold, resets it to ×1. |
-| **Score** | Always a multiple of 10. Each ingredient is +10. Serving a bowl adds (100 + up to 150 speed bonus + 50 for a perfect bowl) × multiplier. Points fly into the counter, and the counter rolls and **locks** with a click. |
+| **Score** | No luck involved: the same bowl served the same way always scores the same. Always a multiple of 10. Each right ingredient is +10. Serving a bowl adds (100 + speed bonus + 50 for a perfect bowl) × multiplier. The speed bonus goes from 0 (clock empty) to 150 (clock full) in steps of 10, in step with how much of the clock is left. Points fly into the counter, and the counter rolls and **locks** with a click. |
 | **Game over** | The final score's digits spin and lock one at a time, then a red LOCKED seal stamps it. Your best score is saved on your phone. |
 | **One ramp, ages 8 to 15** | There are no difficulty levels. The game starts gentle and speeds up with every bowl. Orders grow from a few toppings to the full regional recipe, and decoys go from 2 up to 7. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. |
 

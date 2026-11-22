@@ -230,8 +230,14 @@ function flyPoints(points, done){
 async function serve(){
   const frac = Math.max(0, S.timeLeft / S.timeMax);
   const perfect = S.mistakes === 0;
-  // every part is a multiple of 10: 100 for the bowl, up to 150 for speed, 50 if perfect
-  const total = (100 + Math.round(15 * frac) * 10 + (perfect ? 50 : 0)) * S.mult;
+  /* No luck involved: the same bowl served the same way always scores the same.
+     Every part is a multiple of 10: 100 for the bowl, a speed bonus from 0 to 150 in
+     step with how much of the clock is left, 50 if perfect, all times the multiplier
+     you had when you served it. */
+  const speed = Math.round(15 * frac) * 10;
+  const mult = S.mult;
+  const total = (100 + speed + (perfect ? 50 : 0)) * mult;
+  const parts = { speed, perfect, mult, total };
   S.served++;
   S.learned.add(S.recipe.id);
   sound.serve(); buzz([20, 40, 20]);
@@ -253,16 +259,20 @@ async function serve(){
   AR.clearTokens();
   await AR.serveBowl();
   if (S.phase !== 'serving') return;
-  await showFact(S.recipe, made, picture);
+  await showFact(S.recipe, made, picture, parts);
   if (S.phase === 'serving') newOrder();
 }
 
 // After a bowl is served the clock is stopped and a card tells you about that region's ramen
 // for a couple of seconds (tap to skip), so the fact never covers a running order.
 const FACT_MS = 2600;
-function showFact(recipe, made, picture){
+function showFact(recipe, made, picture, parts){
   return new Promise((done) => {
     $('factBowl').innerHTML = picture ? `<img src="${picture}" alt="">` : bowlSvg(made);
+    // the bowl's points, part by part, so the score always adds up
+    $('factScore').innerHTML = parts
+      ? `<span>Bowl 100</span><span>Speed +${parts.speed}</span>${parts.perfect ? '<span>Perfect +50</span>' : ''}${parts.mult > 1 ? `<span>×${parts.mult}</span>` : ''}<b>= ${parts.total}</b>`
+      : '';
     $('factName').textContent = recipe.name;
     $('factPlace').textContent = recipe.place;
     $('factText').textContent = recipe.fact;

@@ -865,8 +865,8 @@ function project(obj, lift = 0){
 
 /* Lay the stage out in the free screen area below the order card:
    the bowl on its counter at the top, the ingredient plates in a grid below.
-   Positions are fixed in the world at the neutral camera, so tilting the
-   phone or dragging only turns the view a little around them. */
+   The view is fixed at the Anatomy angle: moving the phone or dragging never
+   moves the plates against the camera picture. */
 export function layout(){
   if (!R.camera) return;
   const top = R.layoutTop?.() ?? 120;
@@ -875,7 +875,7 @@ export function layout(){
   const n = R.tokens.length || 8;
   const cols = W < 420 ? (n > 9 ? 4 : n > 4 ? 3 : n) : Math.min(5, Math.max(3, Math.ceil(n / 2)));
   const rows = Math.max(1, Math.ceil(n / cols));
-  const bowlH = H * (rows > 2 ? 0.4 : 0.48);
+  const bowlH = H * (rows > 2 ? 0.36 : 0.46);
   // zoom: the bowl on its counter should fill the bowl band
   const counterW = BOWL.r * 2.7;
   const sinE = Math.sin(ELEVATION * DEG), cosE = Math.cos(ELEVATION * DEG);
@@ -886,18 +886,28 @@ export function layout(){
   sizeCamera(); aimCamera(); R.camera.updateMatrixWorld();
   const bowlBase = floorAt(W / 2, top + bowlH - counterW * sinE * R.zoom * 0.5 - 4);
   R.bowlSpot.position.copy(bowlBase);
+  /* Each cell holds one block: the food on its plate, then its name right under the plate.
+     The block's size comes from the tallest model on the counter, so food never reaches
+     into the name above it, and there is a clear gap between neighbouring plates. */
   const cellW = W / cols, gridTop = top + bowlH, cellH = (H - bowlH) / rows;
-  const tokenPx = Math.min(cellW * 0.78, cellH * 0.95);
-  const scale = tokenPx / (0.084 * R.zoom);
+  const GAP_X = Math.max(18, cellW * 0.3), GAP_Y = 14, LABEL_GAP = 5, LABEL_H = cols > 3 ? 38 : 22; // narrow cells may wrap a name onto 2 lines
+  const PLATE = 0.042;
+  const up = Math.max(PLATE * sinE, ...R.tokens.map((t) => t.top * cosE + Math.min(PLATE, t.reach) * sinE)); // food above the plate's centre
+  const down = PLATE * sinE + 0.008 * cosE; // the plate's front edge
+  const k = Math.min((cellW - GAP_X) / (PLATE * 2.1), (cellH - GAP_Y - LABEL_GAP - LABEL_H) / (up + down)); // px per unit
+  const scale = k / R.zoom;
+  const blockH = (up + down) * k + LABEL_GAP + LABEL_H;
   R.layout = { cols, rows, cellW, cellH, gridTop, scale };
   R.tokens.forEach((t, i) => {
     const r = Math.floor(i / cols), c = i % cols;
     const inRow = Math.min(cols, n - r * cols);
     const x = (W - inRow * cellW) / 2 + (c + 0.5) * cellW;
-    const y = gridTop + (r + 0.5) * cellH;
+    const y = gridTop + r * cellH + (cellH - blockH) / 2 + up * k;
     t.home.copy(floorAt(x, y));
     t.node.position.copy(t.home);
     t.scale = scale;
+    t.labelDy = down * k + LABEL_GAP;
+    t.label.style.maxWidth = `${Math.floor(cellW - 18)}px`; // a clear gap between neighbouring names
     if (t.alive && !t.entering) t.node.scale.setScalar(scale);
   });
   Object.assign(R.view, saved);
@@ -964,7 +974,11 @@ export function setTokens(ids){
     label.className = 'tlabel';
     label.textContent = SHORT[id];
     R.labels.appendChild(label);
-    const tok = { id, node, model, label, home: new THREE.Vector3(), alive: true, entering: true, scale: 1, phase: Math.random() * TAU, shake: 0 };
+    // the model's own size (it isn't in the scene yet, so its world box is its local box)
+    model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model);
+    const reach = Math.max(-box.min.z, box.max.z, -box.min.x, box.max.x);
+    const tok = { id, node, model, label, home: new THREE.Vector3(), alive: true, entering: true, scale: 1, top: box.max.y, reach, labelDy: 0, shake: 0 };
     model.userData.token = tok; // taps are found on the model itself (the food and its plate)
     R.tokensRoot.add(node);
     return tok;
@@ -1068,7 +1082,7 @@ export function tokensRect(){
 }
 export function setLayoutBounds(top, bottom){ R.layoutTop = top; R.layoutBottom = bottom; }
 
-// ------------------------------------------------------------------ input: tap a token, drag to turn the view
+// ------------------------------------------------------------------ input: tap a token
 let down = null;
 function onDown(ev){
   // the ingredient names are labels, not buttons: a touch on one does nothing
@@ -1079,10 +1093,7 @@ function onMove(ev){
   if (!down) return;
   const dx = ev.clientX - down.x, dy = ev.clientY - down.y;
   if (Math.hypot(dx, dy) > 12) down.moved = true;
-  if (down.moved){
-    R.view.dragAz = Math.max(-35, Math.min(35, down.az - dx * 0.25));
-    R.view.dragEl = Math.max(-14, Math.min(22, down.el + dy * 0.15));
-  }
+  // a drag only cancels the tap: the shop stays put, so the plates never drift
 }
 function onUp(ev){
   if (!down) return;
@@ -1105,7 +1116,7 @@ function onUp(ev){
 function onGyro(e){
   if (e.beta == null || e.gamma == null) return;
   if (!R.view.gyro0) R.view.gyro0 = { b: e.beta, g: e.gamma };
-  // small parallax: tilting the phone turns the view a few degrees, so the shop feels solid
+  // no longer used: the view stays fixed so the plates never drift
   R.view.gyroAz = Math.max(-10, Math.min(10, (e.gamma - R.view.gyro0.g) * 0.35));
   R.view.gyroEl = Math.max(-8, Math.min(8, -(e.beta - R.view.gyro0.b) * 0.25));
 }
@@ -1126,8 +1137,8 @@ function frame(){
   aimCamera();
   for (const tok of R.tokens){
     if (!tok.alive) continue;
-    tok.node.position.y = tok.home.y + Math.sin(t * 1.6 + tok.phase) * 0.004; // the same gentle float for every plate, no hints
-    tok.model.rotation.y = t * 0.4 + tok.phase;
+    // plates stay still on the counter: no float, no spin, no hints
+    tok.node.position.y = tok.home.y;
     if (tok.shake > 0){
       tok.shake = Math.max(0, tok.shake - dt);
       tok.node.position.x = tok.home.x + Math.sin(tok.shake * 60) * 0.01 * (tok.shake / 0.5);
@@ -1145,7 +1156,7 @@ function frame(){
   for (const tok of R.tokens){
     if (!tok.alive) continue;
     v3.copy(tok.home).project(R.camera);
-    tok.label.style.transform = `translate(${((v3.x * 0.5 + 0.5) * innerWidth).toFixed(1)}px, ${((-v3.y * 0.5 + 0.5) * innerHeight + 0.032 * tok.scale * R.zoom).toFixed(1)}px) translate(-50%,0)`;
+    tok.label.style.transform = `translate(${((v3.x * 0.5 + 0.5) * innerWidth).toFixed(1)}px, ${((-v3.y * 0.5 + 0.5) * innerHeight + tok.labelDy).toFixed(1)}px) translate(-50%,0)`;
   }
 }
 
@@ -1161,7 +1172,6 @@ function startStage(container){
     addEventListener('pointerdown', onDown, { passive: true });
     addEventListener('pointermove', onMove, { passive: true });
     addEventListener('pointerup', onUp, { passive: true });
-    addEventListener('deviceorientation', onGyro);
   }
   R.canvas = R.renderer.domElement;
   R.canvas.className = 'stage';
