@@ -201,10 +201,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .factname{font-size:21px;font-weight:900;color:var(--anatomy-strong);line-height:1.15}
 .factplace{font-size:14px;font-weight:700;color:var(--anatomy-red);margin-top:2px}
 .facttext{margin:10px 0 12px;font-size:15px;line-height:1.4;color:var(--anatomy-text)}
-.factscore{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin:0 0 12px;font-size:14px;font-weight:800;color:var(--anatomy-strong)}
-.factscore:empty{display:none}
-.factscore span{padding:2px 8px;border-radius:999px;box-shadow:0 0 0 1px var(--anatomy-mid)}
-.factscore b{font-size:17px;color:var(--anatomy-red)}
 .factbar{height:5px;border-radius:3px;background:var(--anatomy-shade-3);overflow:hidden}
 .factbar b{display:block;height:100%;background:var(--anatomy-red);transform-origin:left}
 #fact.on .factbar b{animation:drain var(--fact-ms,2600ms) linear forwards}
@@ -223,9 +219,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .final .bigodo .d.spin span{animation:spin .12s linear infinite}
 @keyframes spin{to{transform:translateY(-600px)}}
 .final .bigodo .d.locked{animation:lock .4s var(--anatomy-ease);box-shadow:var(--anatomy-lift),0 0 0 2px var(--anatomy-hi)}
-.hanko{position:absolute;right:-4px;top:-26px;width:80px;height:80px;opacity:0;transform:scale(2.6) rotate(-30deg)}
-.hanko.on{animation:hanko .45s cubic-bezier(.2,1.4,.4,1) forwards}
-@keyframes hanko{to{opacity:.95;transform:scale(1) rotate(-12deg)}}
 .newbest{display:inline-block;margin-top:2px;padding:4px 12px;border-radius:999px;background:var(--anatomy-red);color:#fff8ec;font-weight:900;
   font-size:13px;letter-spacing:.08em;opacity:0;transform:scale(.5)}
 .newbest.on{animation:pop2 .5s var(--anatomy-ease) forwards}

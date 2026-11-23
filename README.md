@@ -22,7 +22,7 @@ over Japan, layer by layer, against the clock. Made for ages 8 to 15.
    Only the 3D food and its plate count as a tap; the name right under it is just a label. There are no hints:
    the plates sit still and evenly spaced, so you have to know which ingredient is which.
 4. When every ingredient is in, the bowl is **served automatically**. After a short beat, a card
-   shows a picture of the bowl you made, how its points add up and a fact about its region for about 2.6 seconds (tap to skip).
+   shows a picture of the bowl you made and a fact about its region for about 2.6 seconds (tap to skip).
    The clock is stopped while it's up. Then the next order arrives.
 
 | Thing | How it works |
@@ -32,7 +32,7 @@ over Japan, layer by layer, against the clock. Made for ages 8 to 15.
 | **Mistakes** | A wrong ingredient or the wrong layer (noodles before broth) takes 1.5 s off the clock and breaks your combo. It doesn't cost a life. |
 | **Combo / multiplier** | Every **perfect bowl** in a row (no wrong taps) adds 1 to the multiplier, up to ×5. One mistake, or a bowl that goes cold, resets it to ×1. |
 | **Score** | No luck involved: the same bowl served the same way always scores the same. Always a multiple of 10. Each right ingredient is +10. Serving a bowl adds (100 + speed bonus + 50 for a perfect bowl) × multiplier. The speed bonus goes from 0 (clock empty) to 150 (clock full) in steps of 10, in step with how much of the clock is left. Points fly into the counter, and the counter rolls and **locks** with a click. |
-| **Game over** | The final score's digits spin and lock one at a time, then a red LOCKED seal stamps it. Your best score is saved on your phone. |
+| **Game over** | The final score's digits spin and settle one at a time (no stamp). Your best score is saved on your phone. Two buttons: **Play again** starts a new game, and **Exit** goes back to the scan-to-play viewfinder. |
 | **One ramp, ages 8 to 15** | There are no difficulty levels. The game starts gentle and speeds up with every bowl. Orders grow from a few toppings to the full regional recipe, and decoys go from 2 up to 7. Decoys come from the same layer, so you have to know *which* broth and *which* noodle. |
 
 ## The 12 regional bowls

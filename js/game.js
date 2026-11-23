@@ -237,7 +237,6 @@ async function serve(){
   const speed = Math.round(15 * frac) * 10;
   const mult = S.mult;
   const total = (100 + speed + (perfect ? 50 : 0)) * mult;
-  const parts = { speed, perfect, mult, total };
   S.served++;
   S.learned.add(S.recipe.id);
   sound.serve(); buzz([20, 40, 20]);
@@ -259,20 +258,16 @@ async function serve(){
   AR.clearTokens();
   await AR.serveBowl();
   if (S.phase !== 'serving') return;
-  await showFact(S.recipe, made, picture, parts);
+  await showFact(S.recipe, made, picture);
   if (S.phase === 'serving') newOrder();
 }
 
 // After a bowl is served the clock is stopped and a card tells you about that region's ramen
 // for a couple of seconds (tap to skip), so the fact never covers a running order.
 const FACT_MS = 2600;
-function showFact(recipe, made, picture, parts){
+function showFact(recipe, made, picture){
   return new Promise((done) => {
     $('factBowl').innerHTML = picture ? `<img src="${picture}" alt="">` : bowlSvg(made);
-    // the bowl's points, part by part, so the score always adds up
-    $('factScore').innerHTML = parts
-      ? `<span>Bowl 100</span><span>Speed +${parts.speed}</span>${parts.perfect ? '<span>Perfect +50</span>' : ''}${parts.mult > 1 ? `<span>×${parts.mult}</span>` : ''}<b>= ${parts.total}</b>`
-      : '';
     $('factName').textContent = recipe.name;
     $('factPlace').textContent = recipe.place;
     $('factText').textContent = recipe.fact;
@@ -404,7 +399,6 @@ function gameOver(){
   $('learned').innerHTML = S.learned.size
     ? `Bowls you cooked: ${[...S.learned].map((id) => RECIPES.find((r) => r.id === id).place.split(' · ')[0]).join(', ')}`
     : 'Tip: broth first, then noodles, then toppings!';
-  $('hanko').classList.remove('on');
   $('newBest').classList.remove('on');
 
   // Score lock: every digit spins, then they lock one by one from the left.
@@ -419,10 +413,8 @@ function gameOver(){
     d.classList.add('locked');
     sound.clack(); buzz(15);
   }, 700 + i * 320));
-  setTimeout(() => {
-    $('hanko').classList.add('on'); sound.stamp(); buzz(60);
-    if (isBest) setTimeout(() => { $('newBest').classList.add('on'); sound.combo(5); }, 350);
-  }, 900 + digits.length * 320);
+  // no stamp at the end: the score just settles, and a new best gets a cheer
+  if (isBest) setTimeout(() => { $('newBest').classList.add('on'); sound.combo(5); }, 900 + digits.length * 320);
 }
 
 function pause(){
@@ -490,7 +482,8 @@ $('soundBtn').addEventListener('click', () => {
   sound.unlock();
 });
 $('againBtn').addEventListener('click', () => { show(null); startGame(); });
-$('menuBtn').addEventListener('click', () => rescan(false));
+// Exit leaves the game and goes back to the scan-to-play viewfinder
+$('menuBtn').addEventListener('click', () => { S.phase = 'scan'; show(null); rescan(false); });
 $('errBtn').addEventListener('click', () => { $('err').hidden = true; rescan(false); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 // MindAR's own listeners can throw after a failed camera start; the viewfinder already says what to do.
