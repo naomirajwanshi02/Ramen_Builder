@@ -27,7 +27,7 @@ over Japan, layer by layer, against the clock. Made for ages 8 to 15.
    and a fact about its region. The clock is stopped; tap **Continue** for the next order. **Pause → Facts: off**
    skips these cards (the choice is remembered).
 5. **Sound** is made in the browser (no files). Phones only allow sound after a finished tap, so it switches on with
-   your first tap (Start, for example), and on iPhone it plays even with the silent switch on. **Pause → Sound** turns it off.
+   your first tap (Start, for example), and on iPhone it plays even with the silent switch on. Sound is always on (there is no sound switch).
 
 | Thing | How it works |
 |---|---|

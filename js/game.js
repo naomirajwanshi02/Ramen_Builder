@@ -15,7 +15,7 @@ const store = {
 
 // ------------------------------------------------------------ sound (tiny synth, no files)
 const sound = {
-  ctx: null, on: store.get('sound', true),
+  ctx: null, on: true, // always on (there is no sound switch)
   /* Phones only let a page start sound from a finished tap (pointerup / touchend / click),
      not from a finger landing. So this runs on every tap until the sound is running. */
   unlock(){
@@ -484,11 +484,6 @@ $('scanRetry').addEventListener('click', () => rescan(false));
 $('pauseBtn').addEventListener('click', pause);
 $('resumeBtn').addEventListener('click', resume);
 $('quitBtn').addEventListener('click', () => { show(null); gameOver(); });
-$('soundBtn').addEventListener('click', () => {
-  sound.on = !sound.on; store.set('sound', sound.on);
-  $('soundBtn').textContent = `Sound: ${sound.on ? 'on' : 'off'}`;
-  sound.unlock();
-});
 $('factsBtn').addEventListener('click', () => {
   S.facts = !S.facts; store.set('facts', S.facts);
   $('factsBtn').textContent = `Facts: ${S.facts ? 'on' : 'off'}`;
@@ -507,7 +502,6 @@ addEventListener('unhandledrejection', (e) => { const s = e.reason?.stack || e.r
 AR.onPick(onPick);
 // The stage fills the screen below the order card, leaving a strip for the drag hint.
 AR.setLayoutBounds(() => $('hudstack').getBoundingClientRect().bottom + 6, () => 22 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-b')) || 0));
-$('soundBtn').textContent = `Sound: ${sound.on ? 'on' : 'off'}`;
 $('factsBtn').textContent = `Facts: ${S.facts ? 'on' : 'off'}`;
 
 // Debug hooks for headless checks.
