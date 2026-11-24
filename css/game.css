@@ -124,11 +124,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .odo .d{width:.62em;height:26px;overflow:hidden}
 .odo .d span{display:block;transition:transform .55s cubic-bezier(.3,1.35,.5,1)}
 .odo .d span i{display:block;height:26px;font-style:normal;text-align:center}
-.odo.lock{animation:lock .5s var(--anatomy-ease)}
-@keyframes lock{30%{transform:scale(1.18)}60%{transform:scale(.96)}100%{transform:scale(1)}}
-.lockmark{width:16px;height:16px;flex:none;opacity:0;transform:scale(.4);transition:all .3s var(--anatomy-ease)}
-.score.locked .lockmark{opacity:1;transform:scale(1)}
-.score.locked{box-shadow:var(--anatomy-lift),0 0 0 2px var(--anatomy-red)}
 .mult{min-width:56px;display:grid;place-items:center;border-radius:6px;font:900 21px/1 var(--anatomy-mono);text-align:center;
   background:var(--glass);color:var(--anatomy-strong);box-shadow:var(--anatomy-lift),0 0 0 1px var(--anatomy-mid)}
 .mult small{display:block;font-size:8px;letter-spacing:.1em;color:var(--anatomy-muted);font-weight:600;margin-top:3px}
@@ -154,7 +149,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .hint{font-family:var(--anatomy-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--anatomy-muted);margin-top:3px}
 .hint b{color:var(--anatomy-red)}
 .ordread{font-size:15px;font-weight:800;color:var(--anatomy-strong);flex:none}
-.ticket{display:flex;gap:5px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.ticket{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:10px}
+.trow{display:flex;align-items:center;justify-content:center;gap:5px}
 .chip{position:relative;width:62px;padding:3px 2px 4px;border-radius:10px;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);
   display:flex;flex-direction:column;align-items:center;transition:all .25s}
 .chip svg,.chip img{width:48px;height:48px;display:block}
@@ -163,7 +159,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .chip.done{opacity:.45}
 .chip.done::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-weight:900;color:var(--anatomy-green);font-size:34px;
   text-shadow:0 0 3px var(--anatomy-card),0 0 6px var(--anatomy-card)}
-.ticket .sep{width:5px;height:2px;background:var(--anatomy-lo);border-radius:2px}
+.ticket .sep{flex:none;width:8px;height:2px;background:var(--anatomy-lo);border-radius:2px} /* one dash, the same between every ingredient */
 .timer{height:9px;border-radius:6px;background:var(--anatomy-shade-1);box-shadow:inset 0 0 0 1px var(--anatomy-faint);overflow:hidden;margin-top:9px}
 .timer b{display:block;height:100%;background:var(--anatomy-hi);transform-origin:left;border-radius:6px}
 .timer.hot b{background:var(--anatomy-red);animation:hot .5s steps(2) infinite}
@@ -193,7 +189,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .toast.on{transform:translate(-50%,0);opacity:1;visibility:visible;transition:transform .4s var(--anatomy-ease),opacity .4s}
 .toast b{color:var(--anatomy-red)}
 
-/* bowl served: holds the game for a moment between orders */
+/* bowl served: holds the game until Continue */
 #fact{z-index:35;align-items:center;justify-content:center;padding:16px;background:#1a110a55;pointer-events:auto}
 .factcard{width:min(100%,360px);padding:16px 18px 14px;text-align:center;animation:pop .45s var(--anatomy-ease)}
 .factbowl{width:150px;margin:-4px auto 4px}
@@ -201,34 +197,22 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .factname{font-size:21px;font-weight:900;color:var(--anatomy-strong);line-height:1.15}
 .factplace{font-size:14px;font-weight:700;color:var(--anatomy-red);margin-top:2px}
 .facttext{margin:10px 0 12px;font-size:15px;line-height:1.4;color:var(--anatomy-text)}
-.factbar{height:5px;border-radius:3px;background:var(--anatomy-shade-3);overflow:hidden}
-.factbar b{display:block;height:100%;background:var(--anatomy-red);transform-origin:left}
-#fact.on .factbar b{animation:drain var(--fact-ms,2600ms) linear forwards}
-@keyframes drain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 
 /* ================= PAUSE / GAME OVER ================= */
 .panel{padding:26px 18px;display:flex;flex-direction:column;gap:10px;text-align:center}
 .panel h2{margin:0 0 4px;font-size:28px;color:var(--anatomy-strong)}
 .final{padding:34px 16px 22px;text-align:center}
 .final h2{margin:0;font-size:26px;font-weight:900;color:var(--anatomy-strong)}
-.final .bigodo{display:flex;justify-content:center;gap:4px;margin:12px 0 6px}
-.final .bigodo .d{width:min(11vw,44px);height:60px;border-radius:8px;background:var(--anatomy-face);box-shadow:var(--anatomy-lift),0 0 0 1px var(--anatomy-mid);
-  overflow:hidden;font:900 40px/60px var(--anatomy-mono);color:var(--anatomy-strong);position:relative}
-.final .bigodo .d span{display:block}
-.final .bigodo .d span i{display:block;height:60px;font-style:normal}
-.final .bigodo .d.spin span{animation:spin .12s linear infinite}
-@keyframes spin{to{transform:translateY(-600px)}}
-.final .bigodo .d.locked{animation:lock .4s var(--anatomy-ease);box-shadow:var(--anatomy-lift),0 0 0 2px var(--anatomy-hi)}
 .newbest{display:inline-block;margin-top:2px;padding:4px 12px;border-radius:999px;background:var(--anatomy-red);color:#fff8ec;font-weight:900;
   font-size:13px;letter-spacing:.08em;opacity:0;transform:scale(.5)}
 .newbest.on{animation:pop2 .5s var(--anatomy-ease) forwards}
 @keyframes pop2{to{opacity:1;transform:scale(1)}}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:14px}
 .stats div{background:var(--anatomy-shade-3);border-radius:10px;padding:8px 2px;box-shadow:inset 0 0 0 1px var(--anatomy-faint)}
-.stats b{display:block;font:900 20px/1.1 var(--anatomy-mono);color:var(--anatomy-strong)}
-.stats span{font-size:13px;font-weight:700;color:var(--anatomy-text)}
-.learned{margin-top:12px;font-size:13px}
+.stats b{display:block;font:900 24px/1.1 var(--anatomy-mono);color:var(--anatomy-strong)}
+.stats span{font-size:14px;font-weight:700;line-height:1.3;color:var(--anatomy-text)}
+.learned{margin-top:12px;font-size:15px}
 .over-actions{display:flex;gap:8px;justify-content:center;margin-top:16px}
 .over-actions .btn{flex:1}
 
@@ -275,3 +259,27 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* ================= INTRO (as in sushi-ar and Noh_Masks): the picture, the title and Start ================= */
+.welcome{position:relative;width:min(100%,400px);padding:44px 20px 24px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.welcome h1{margin:0;font-size:clamp(28px,8.5vw,36px);line-height:1.05;font-weight:900;color:var(--anatomy-strong)}
+.welcome p{margin:0 auto;max-width:34ch;font-size:15px;line-height:1.4;color:var(--anatomy-text)}
+.hero-art{display:block;width:min(86%,330px);height:auto;margin:-4px auto 2px;filter:drop-shadow(0 8px 10px #3b2a1c33)}
+/* a plain cross inside the panel's top-right corner, no circle round it */
+.closex{position:absolute;top:6px;right:6px;width:44px;height:44px;padding:0;border:0;background:none;color:var(--anatomy-strong);
+  display:grid;place-items:center;cursor:pointer;border-radius:6px}
+.closex:active{transform:scale(.9)}
+.closex:focus-visible{outline:2px solid var(--anatomy-red);outline-offset:2px}
+@media (max-height:560px){ .hero-art{width:auto;max-height:34vh} .welcome{padding-top:36px} }
+
+/* ================= GAME OVER (as in sushi-ar) ================= */
+.final{width:min(100%,400px)}
+.final .bignum{font:900 clamp(40px,13vw,58px)/1.05 var(--anatomy-mono);color:var(--anatomy-strong);font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.newbest{display:none;font-size:14px}
+.newbest.on{display:inline-block}
+.made{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px}
+.made img,.made span{width:56px;height:46px;object-fit:contain;display:block}
+.made span svg{width:100%;height:100%}
+
+/* the fact card waits for Continue */
+.factcard #factNext{width:100%}

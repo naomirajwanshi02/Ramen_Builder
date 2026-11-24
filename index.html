@@ -31,7 +31,7 @@
 <div id="ar"></div>
 
 <!-- ============ VIEWFINDER: the page opens straight into it ============ -->
-<div id="guide" class="overlay on">
+<div id="guide" class="overlay">
   <div class="scan-top plate"><b id="guideTitle">Point your camera at the ramen picture</b></div>
   <div class="frame"><i></i><i></i><i></i><i></i><div class="sweep"></div></div>
   <div class="scan-bottom">
@@ -42,7 +42,18 @@
   </div>
 </div>
 
-<div id="found" class="overlay"><div class="plate badge"><div class="stamp">🍜</div><b>The shop is open!</b></div></div>
+<!-- ============ INTRO: comes up once the picture is recognised (as in sushi-ar and Noh_Masks) ============ -->
+<section id="intro" class="screen dim">
+  <div class="col center">
+    <div class="plate welcome">
+      <button class="closex" id="introClose" aria-label="Close and go back to Scan to Play"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+      <img class="hero-art" src="assets/bowl-cutout.png" alt="A painted bowl of shoyu ramen">
+      <h1>Ramen Builder</h1>
+      <p>Cook ramen bowls from all over Japan, layer by layer, before the clock runs out.</p>
+      <button class="btn red" id="startBtn">Start</button>
+    </div>
+  </div>
+</section>
 
 <!-- ============ AR HUD ============ -->
 <div id="hud" class="overlay">
@@ -50,7 +61,6 @@
   <div class="hud top">
     <div class="plate score" id="scoreBox">
       <div class="odo" id="odo"></div>
-      <svg class="lockmark" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="8" rx="1.5" fill="#b5452f"/><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="#b5452f" stroke-width="1.8"/></svg>
     </div>
     <div class="mult" id="mult" data-m="1"><div>×1<small>combo 0</small></div></div>
     <div class="plate lives" id="lives"></div>
@@ -76,24 +86,25 @@
       <h2>Paused</h2>
       <button class="btn" id="resumeBtn">Keep cooking</button>
       <button class="btn ghost" id="soundBtn">Sound: on</button>
+      <button class="btn ghost" id="factsBtn">Facts: on</button>
       <button class="btn ghost" id="quitBtn">End game</button>
     </div>
   </div>
 </section>
 
-<!-- ============ GAME OVER ============ -->
+<!-- ============ GAME OVER (laid out as in sushi-ar) ============ -->
 <section id="over" class="screen dim">
   <div class="col center">
     <div class="plate final">
-      <h2>Shop closed!</h2>
-      <div class="bigodo" id="bigodo"></div>
+      <h2>Game over</h2>
+      <div class="bignum" id="finalScore">0</div>
       <div class="newbest" id="newBest">★ NEW BEST ★</div>
       <div class="stats">
-        <div><b id="stBowls">0</b><span>bowls</span></div>
-        <div><b id="stCombo">0</b><span>best streak</span></div>
-        <div><b id="stMult">×1</b><span>top combo</span></div>
+        <div><b id="stBowls">0</b><span>Bowls served</span></div>
+        <div><b id="stBest">0</b><span>High score</span></div>
       </div>
       <div class="learned" id="learned"></div>
+      <div class="made" id="made"></div>
       <div class="over-actions">
         <button class="btn red" id="againBtn">Play again</button>
         <button class="btn ghost" id="menuBtn">Exit</button>
@@ -116,14 +127,14 @@
   </div>
 </div>
 
-<!-- ============ BOWL SERVED: a short pause between orders with a fact about the region ============ -->
+<!-- ============ BOWL SERVED: a fact about the region; Continue starts the next order ============ -->
 <div id="fact" class="overlay">
   <div class="plate factcard" id="factCard">
     <div class="factbowl" id="factBowl"></div>
     <div class="factname" id="factName"></div>
     <div class="factplace" id="factPlace"></div>
     <p class="facttext" id="factText"></p>
-    <div class="factbar"><b id="factBar"></b></div>
+    <button class="btn red" id="factNext">Continue</button>
   </div>
 </div>
 

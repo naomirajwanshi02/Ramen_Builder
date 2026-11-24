@@ -16,7 +16,19 @@ const store = {
 // ------------------------------------------------------------ sound (tiny synth, no files)
 const sound = {
   ctx: null, on: store.get('sound', true),
-  unlock(){ if (!this.ctx){ try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { this.on = false; } } this.ctx?.resume?.(); },
+  /* Phones only let a page start sound from a finished tap (pointerup / touchend / click),
+     not from a finger landing. So this runs on every tap until the sound is running. */
+  unlock(){
+    // iPhone: play through the silent switch, like a game or video does
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older Safari */ }
+    if (!this.ctx){ try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; } }
+    if (this.ctx.state !== 'running'){
+      this.ctx.resume?.();
+      // a silent blip finishes the unlock on older iPhones
+      try { const b = this.ctx.createBuffer(1, 1, 22050), s = this.ctx.createBufferSource(); s.buffer = b; s.connect(this.ctx.destination); s.start(0); } catch { /* fine */ }
+    }
+  },
+  get ready(){ return this.ctx?.state === 'running'; },
   tone(freq, dur = 0.09, type = 'triangle', gain = 0.14, slide = 0, delay = 0){
     if (!this.on || !this.ctx) return;
     const t = this.ctx.currentTime + delay;
@@ -44,6 +56,9 @@ const S = {
   recipe: null, need: [], bowl: null, mistakes: 0,
   timeLeft: 0, timeMax: 1, lastTickAt: 0, learned: new Set(), lastRecipe: null,
   started: false, // the AR shop has been opened at least once this session
+  toured: false, // the how-to-play tour runs before the first game only
+  facts: store.get('facts', true), // the region card after each bowl (Pause → Facts: on/off)
+  pictures: new Map(), // recipe id → a picture of the first bowl of it served this game
 };
 
 function show(id){
@@ -65,18 +80,10 @@ function setOdo(el, value){
     d.style.opacity = i < el.children.length - String(value).length ? '.28' : '1';
   });
 }
-function lockScore(){
-  const odo = $('odo');
-  odo.classList.remove('lock'); void odo.offsetWidth; odo.classList.add('lock');
-  $('scoreBox').classList.add('locked');
-  sound.clack(); buzz(20);
-  clearTimeout(lockScore.t);
-  lockScore.t = setTimeout(() => $('scoreBox').classList.remove('locked'), 1100);
-}
-function addScore(points, { lock = false } = {}){
+function addScore(points, { landed = false } = {}){
   S.score += points;
   setOdo($('odo'), S.score);
-  if (lock) lockScore();
+  if (landed){ sound.clack(); buzz(20); } // the bowl's points land in the counter (no lock)
 }
 
 // ------------------------------------------------------------ HUD helpers
@@ -160,12 +167,16 @@ const chipIcon = (id) => { const url = AR.iconUrl(id); return url ? `<img src="$
 const nextLayer = () => (!S.bowl.broth ? 'broth' : !S.bowl.noodles ? 'noodles' : 'topping');
 function renderTicket(){
   const layer = nextLayer();
-  $('ticket').innerHTML = S.need.map((id, i) => {
+  const chip = (id) => {
     const done = have(id);
     const next = !done && INGREDIENTS[id].layer === layer;
-    const sep = i === 1 || i === 2 ? '<span class="sep"></span>' : '';
-    return `${sep}<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${chipIcon(id)}<span>${SHORT[id]}</span></div>`;
-  }).join('');
+    return `<div class="chip${done ? ' done' : ''}${next ? ' next' : ''}" title="${INGREDIENTS[id].name}">${chipIcon(id)}<span>${SHORT[id]}</span></div>`;
+  };
+  // the same dash between every ingredient; more than 5 go on two even rows, so no row starts or ends with a dash
+  const n = S.need.length, perRow = n > 5 ? Math.ceil(n / 2) : n;
+  const rows = [];
+  for (let i = 0; i < n; i += perRow) rows.push(S.need.slice(i, i + perRow));
+  $('ticket').innerHTML = rows.map((row) => `<div class="trow">${row.map(chip).join('<span class="sep"></span>')}</div>`).join('');
 }
 
 // ------------------------------------------------------------ picking an ingredient in AR
@@ -241,7 +252,7 @@ async function serve(){
   S.learned.add(S.recipe.id);
   sound.serve(); buzz([20, 40, 20]);
   popup(perfect ? 'Perfect bowl!' : 'Order up!', 'big', 0.3);
-  flyPoints(total, () => addScore(total, { lock: true }));
+  flyPoints(total, () => addScore(total, { landed: true }));
   if (perfect){
     S.combo++;
     S.maxCombo = Math.max(S.maxCombo, S.combo);
@@ -255,35 +266,29 @@ async function serve(){
   const made = { ...S.bowl, toppings: [...S.bowl.toppings] };
   let picture = null;
   try { picture = AR.bowlPicture(320); } catch { /* the drawn bowl is used instead */ }
+  if (!S.pictures.has(S.recipe.id)) S.pictures.set(S.recipe.id, picture || null); // for the game-over screen
   AR.clearTokens();
   await AR.serveBowl();
   if (S.phase !== 'serving') return;
-  await showFact(S.recipe, made, picture);
+  if (S.facts) await showFact(S.recipe, made, picture);
   if (S.phase === 'serving') newOrder();
 }
 
-// After a bowl is served the clock is stopped and a card tells you about that region's ramen
-// for a couple of seconds (tap to skip), so the fact never covers a running order.
-const FACT_MS = 2600;
+// After a bowl is served the clock is stopped and a card tells you about that region's ramen.
+// It stays until Continue is tapped, so there's time to read it. Facts can be turned off in Pause.
 function showFact(recipe, made, picture){
   return new Promise((done) => {
     $('factBowl').innerHTML = picture ? `<img src="${picture}" alt="">` : bowlSvg(made);
     $('factName').textContent = recipe.name;
     $('factPlace').textContent = recipe.place;
     $('factText').textContent = recipe.fact;
-    $('fact').style.setProperty('--fact-ms', `${FACT_MS}ms`);
     overlay('fact', true);
-    let over = false;
-    const finish = () => {
-      if (over) return;
-      over = true;
-      clearTimeout(t);
-      $('fact').removeEventListener('pointerdown', finish);
+    $('factNext').onclick = () => {
+      $('factNext').onclick = null;
+      sound.unlock();
       overlay('fact', false);
       setTimeout(done, 200);
     };
-    const t = setTimeout(finish, FACT_MS);
-    $('fact').addEventListener('pointerdown', finish);
   });
 }
 
@@ -320,7 +325,7 @@ requestAnimationFrame(loop);
 
 // ------------------------------------------------------------ flow
 function resetGame(){
-  Object.assign(S, { score: 0, combo: 0, maxCombo: 0, mult: 1, maxMult: 1, served: 0, lastRecipe: null, learned: new Set() });
+  Object.assign(S, { score: 0, combo: 0, maxCombo: 0, mult: 1, maxMult: 1, served: 0, lastRecipe: null, learned: new Set(), pictures: new Map() });
   S.lives = PACE.lives;
   buildOdo($('odo'), ODO_DIGITS);
   setOdo($('odo'), 0);
@@ -386,35 +391,29 @@ $('coachNext').addEventListener('click', () => {
 $('coachSkip').addEventListener('click', endTour);
 addEventListener('resize', () => { if ($('howto').classList.contains('on')) setTimeout(renderTour, 50); });
 
+// Game over, laid out as in sushi-ar: the final score, the high score and the bowls you made.
 function gameOver(){
   S.phase = 'over';
   AR.clearTokens();
-  show('over');
+  overlay('hud', false); overlay('fact', false); overlay('howto', false);
   const best = store.get('best', 0);
   const isBest = S.score > best;
   if (isBest) store.set('best', S.score);
+  $('finalScore').textContent = S.score.toLocaleString();
   $('stBowls').textContent = S.served;
-  $('stCombo').textContent = S.maxCombo;
-  $('stMult').textContent = `×${S.maxMult}`;
-  $('learned').innerHTML = S.learned.size
-    ? `Bowls you cooked: ${[...S.learned].map((id) => RECIPES.find((r) => r.id === id).place.split(' · ')[0]).join(', ')}`
-    : 'Tip: broth first, then noodles, then toppings!';
+  $('stBest').textContent = Math.max(best, S.score).toLocaleString();
+  const made = RECIPES.filter((r) => S.learned.has(r.id));
+  $('learned').textContent = made.length
+    ? `You made ${made.length} different bowl${made.length === 1 ? '' : 's'} of ramen:`
+    : 'Every cook starts somewhere. Try again!';
+  $('made').innerHTML = made.map((r) => {
+    const pic = S.pictures.get(r.id);
+    return pic ? `<img src="${pic}" alt="${r.name}" title="${r.name}">` : `<span title="${r.name}">${bowlSvg({ broth: r.broth, noodles: r.noodles, toppings: r.toppings })}</span>`;
+  }).join('');
   $('newBest').classList.remove('on');
-
-  // Score lock: every digit spins, then they lock one by one from the left.
-  const big = $('bigodo');
-  const digits = String(S.score).padStart(4, '0');
-  const lead = digits.length - String(S.score).length;
-  big.innerHTML = [...digits].map(() => `<div class="d spin"><span>${Array.from({ length: 20 }, (_, n) => `<i>${n % 10}</i>`).join('')}</span></div>`).join('');
-  [...big.children].forEach((d, i) => setTimeout(() => {
-    d.classList.remove('spin');
-    d.firstChild.style.transform = `translateY(${-Number(digits[i]) * 60}px)`;
-    if (i < lead) d.style.opacity = '.35';
-    d.classList.add('locked');
-    sound.clack(); buzz(15);
-  }, 700 + i * 320));
-  // no stamp at the end: the score just settles, and a new best gets a cheer
-  if (isBest) setTimeout(() => { $('newBest').classList.add('on'); sound.combo(5); }, 900 + digits.length * 320);
+  show('over');
+  sound.lose();
+  if (isBest) setTimeout(() => { $('newBest').classList.add('on'); sound.combo(5); }, 800);
 }
 
 function pause(){
@@ -431,15 +430,24 @@ function resume(){
 // ------------------------------------------------------------ AR session
 // The card is only needed once: when it is recognised the shop opens on screen
 // over the live camera, and the phone can move freely from then on.
+// Once the picture is recognised the shop opens over the camera with the intro panel on top.
+// Start begins the game (with the how-to-play tour the first time).
 function onFound(){
   if (S.started) return;
   S.started = true;
   overlay('guide', false);
   AR.open($('ar'));
-  sound.serve(); buzz(40);
-  overlay('found', true);
-  setTimeout(() => overlay('found', false), 1100);
-  startGame({ tour: true });
+  buzz(40);
+  S.phase = 'menu';
+  show('intro');
+}
+// The cross on the intro and Exit on the game-over screen both go back to Scan to Play,
+// the scanning page this game is linked from.
+const SCAN_TO_PLAY = 'https://naomirajwanshi02.github.io/Scan_To_Play/';
+function exitToScan(){
+  S.phase = 'scan';
+  try { AR.stop(); } catch { /* already stopped */ }
+  location.href = SCAN_TO_PLAY;
 }
 // The page opens straight into the camera viewfinder.
 async function openShop(demo){
@@ -464,12 +472,12 @@ async function openShop(demo){
 }
 function rescan(demo = false){
   AR.stop();
-  overlay('found', false);
   openShop(demo);
 }
 
-// Sound and iPhone motion access both need a tap, so they unlock on the first touch anywhere.
-addEventListener('pointerdown', () => { sound.unlock(); AR.askMotion(); }, { once: true, capture: true });
+// Sound needs a tap, so it unlocks on the first finished tap anywhere (and keeps trying until it runs).
+const unlockSound = () => { sound.unlock(); if (sound.ready) ['pointerup', 'touchend', 'click', 'keydown'].forEach((t) => removeEventListener(t, unlockSound, true)); };
+['pointerup', 'touchend', 'click', 'keydown'].forEach((t) => addEventListener(t, unlockSound, { capture: true, passive: true }));
 
 // ------------------------------------------------------------ wiring
 $('scanRetry').addEventListener('click', () => rescan(false));
@@ -481,9 +489,14 @@ $('soundBtn').addEventListener('click', () => {
   $('soundBtn').textContent = `Sound: ${sound.on ? 'on' : 'off'}`;
   sound.unlock();
 });
+$('factsBtn').addEventListener('click', () => {
+  S.facts = !S.facts; store.set('facts', S.facts);
+  $('factsBtn').textContent = `Facts: ${S.facts ? 'on' : 'off'}`;
+});
+$('startBtn').addEventListener('click', () => { sound.unlock(); startGame({ tour: !S.toured }); S.toured = true; });
+$('introClose').addEventListener('click', exitToScan);
 $('againBtn').addEventListener('click', () => { show(null); startGame(); });
-// Exit leaves the game and goes back to the scan-to-play viewfinder
-$('menuBtn').addEventListener('click', () => { S.phase = 'scan'; show(null); rescan(false); });
+$('menuBtn').addEventListener('click', exitToScan);
 $('errBtn').addEventListener('click', () => { $('err').hidden = true; rescan(false); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 // MindAR's own listeners can throw after a failed camera start; the viewfinder already says what to do.
@@ -495,6 +508,7 @@ AR.onPick(onPick);
 // The stage fills the screen below the order card, leaving a strip for the drag hint.
 AR.setLayoutBounds(() => $('hudstack').getBoundingClientRect().bottom + 6, () => 22 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-b')) || 0));
 $('soundBtn').textContent = `Sound: ${sound.on ? 'on' : 'off'}`;
+$('factsBtn').textContent = `Facts: ${S.facts ? 'on' : 'off'}`;
 
 // Debug hooks for headless checks.
 window.__ramen = { S, newOrder, gameOver, startGame, onPick, AR };
