@@ -335,10 +335,16 @@ function resetGame(){
 // No countdown: the first order is on the counter the moment the shop opens.
 function startGame({ tour = false } = {}){
   resetGame();
+  if (tour){
+    // the tips come first: the dark overlay is up before the board is laid out behind it
+    Object.assign($('spot').style, { left: '50%', top: '50%', width: '0px', height: '0px' });
+    $('coach').style.visibility = 'hidden';
+    overlay('howto', true);
+  }
   show(null);
   overlay('hud', true);
   newOrder();
-  if (tour){ S.phase = 'intro'; setTimeout(showTour, 1100); } // the clock waits until the tour is done
+  if (tour){ S.phase = 'intro'; requestAnimationFrame(() => requestAnimationFrame(showTour)); } // the clock waits until the tour is done
 }
 
 // ------------------------------------------------------------ how to play
@@ -375,6 +381,7 @@ function renderTour(){
   const h = coach.offsetHeight || 170;
   coach.style.top = below > r.top ? `${Math.min(innerHeight - h - 12, r.top + r.height + 16)}px` : `${Math.max(12, r.top - h - 16)}px`;
   coach.style.animation = 'none'; void coach.offsetWidth; coach.style.animation = '';
+  coach.style.visibility = '';
 }
 function endTour(){
   overlay('howto', false);
@@ -458,6 +465,9 @@ async function openShop(demo){
   $('guideTitle').textContent = 'Point your camera at the ramen picture';
   $('scanStatus').textContent = 'Starting camera…';
   overlay('guide', !demo);
+  // Opened from Scan to Play (the picture is already recognised): the intro is the very first
+  // thing on screen, and the camera and the 3D shop get ready behind it.
+  if (demo) show('intro');
   try {
     await AR.preloadIcons();
     if (demo){ await AR.openDemo($('ar')); onFound(); }
@@ -488,7 +498,14 @@ $('factsBtn').addEventListener('click', () => {
   S.facts = !S.facts; store.set('facts', S.facts);
   $('factsBtn').textContent = `Facts: ${S.facts ? 'on' : 'off'}`;
 });
-$('startBtn').addEventListener('click', () => { sound.unlock(); startGame({ tour: !S.toured }); S.toured = true; });
+// Start waits until the shop is open (it is, almost always, by the time Start is read and tapped).
+$('startBtn').addEventListener('click', () => {
+  sound.unlock();
+  if (S.starting) return; // a double tap starts one game
+  S.starting = true;
+  const go = () => { if (!S.started) return setTimeout(go, 100); S.starting = false; startGame({ tour: !S.toured }); S.toured = true; };
+  go();
+});
 $('introClose').addEventListener('click', exitToScan);
 $('againBtn').addEventListener('click', () => { show(null); startGame(); });
 $('menuBtn').addEventListener('click', exitToScan);

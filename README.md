@@ -12,10 +12,10 @@ over Japan, layer by layer, against the clock. Made for ages 8 to 15.
 
 1. Scan the ramen picture, either on [Scan to Play](https://naomirajwanshi02.github.io/Scan_To_Play/) (the one link
    for all the games) or in this game's own viewfinder. When the picture is recognised, the **intro panel** comes up
-   over the camera: the painted bowl (cut out, no background), the title and a **Start** button. The **✕** in the
-   panel's corner goes back to Scan to Play. Opened from Scan to Play, the game goes straight to the intro, with no
-   second viewfinder.
-2. **Start** opens the shop. The first time, a 4-step how-to-play tour points at the order, the bowl, the ingredients
+   over the camera, laid out like Noh_Masks: the painted bowl (cut out, no background), the title, a one-line description, four numbered steps and a **Start** button. The **✕** in the
+   panel's corner goes back to Scan to Play. Opened from Scan to Play, the intro is the very first thing on screen (no
+   second viewfinder, no scanning picture); the camera and the shop get ready behind it.
+2. **Start** opens the shop. The first time, the how-to-play tips come up at once (the board is set up behind them) and point at the order, the bowl, the ingredients
    and the score; the clock starts when you tap **Let's cook!** From then on the picture isn't needed: the shop stays
    still on the screen, so the plates never drift.
 3. An **order** comes in, such as *Sapporo Miso Ramen*, with an ingredient ticket at the top. Every ingredient on the
