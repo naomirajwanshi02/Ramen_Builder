@@ -284,7 +284,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 /* the fact card waits for Continue */
 .factcard #factNext{width:100%}
 /* the four steps on the intro, as on Noh_Masks */
-.welcome p b{color:var(--anatomy-red)}
+.welcome p b{color:var(--anatomy-strong)} /* no orange in the intro text */
 .steps{list-style:none;margin:4px 0 6px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:left}
 .steps li{display:flex;gap:8px;align-items:center;background:var(--anatomy-shade-3);border-radius:10px;padding:8px 10px;font-size:13.5px;line-height:1.25;
   color:var(--anatomy-text);box-shadow:inset 0 0 0 1px var(--anatomy-faint)}
@@ -292,3 +292,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
 .steps li span b{color:var(--anatomy-strong)}
 .welcome .hero-art{width:min(70%,260px)}
 @media (max-height:700px){ .welcome .hero-art{width:min(52%,200px)} .welcome{gap:8px;padding-top:38px} }
+
+/* fact card: a big picture of the bowl and the same padding on every side */
+.factcard{width:min(100%,380px);padding:20px;display:flex;flex-direction:column;align-items:center;gap:0}
+.factbowl{width:min(78%,260px);margin:0 auto 10px}
+.factname{font-size:22px}
+.facttext{margin:10px 0 16px;font-size:15px;line-height:1.45}
+.factcard #factNext{width:100%;margin:0}
+@media (max-height:640px){ .factbowl{width:min(60%,190px)} }
+
+/* intro steps: shorter boxes, number and text centred on one line */
+.steps{gap:6px;margin:2px 0 4px}
+.steps li{min-height:0;padding:6px 8px;gap:7px;font-size:13px;line-height:1.2;border-radius:8px;align-items:center}
+.steps li > b{width:20px;height:20px;font-size:11.5px}
+.steps{grid-auto-rows:1fr}
