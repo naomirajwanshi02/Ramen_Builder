@@ -350,13 +350,13 @@ function startGame({ tour = false } = {}){
 // ------------------------------------------------------------ how to play
 // A short spotlight tour over the real first order, so every part is pointed at where it is.
 const TOUR = [
-  { title: 'Your order', text: 'This is the ramen to cook. Add the ingredients <b>left to right</b>; each one gets a ✓. Finish before the <b>timer bar</b> runs out!',
+  { title: 'Your order', text: 'This is the ramen to cook. Add the ingredients left to right, and each one gets a tick. Finish before the timer bar runs out!',
     rect: () => $('order').getBoundingClientRect() },
-  { title: 'Your bowl', text: 'Everything you pick jumps into this bowl. When it\'s full, it\'s <b>served automatically</b> and the next order comes in.',
+  { title: 'Your bowl', text: 'Everything you pick jumps into this bowl. When it\'s full, it\'s served automatically and the next order comes in.',
     rect: () => AR.bowlRect() },
-  { title: 'The ingredients', text: 'Tap a plate to add it. Always <b>broth first</b>, then <b>noodles</b>, then the <b>toppings</b>. A wrong tap costs time!',
+  { title: 'The ingredients', text: 'Tap a plate to add it. Always broth first, then noodles, then the toppings. A wrong tap costs time!',
     rect: () => AR.tokensRect() },
-  { title: 'Score, combo & lives', text: 'Every <b>perfect bowl</b> in a row raises your multiplier, up to <b>×5</b>. A bowl that goes cold costs one of your <b>3 lives</b>. It gets faster as you go!',
+  { title: 'Score, combo & lives', text: 'Every perfect bowl in a row raises your multiplier, up to ×5. A bowl that goes cold costs one of your 3 lives. It gets faster as you go!',
     rect: () => document.querySelector('.hud.top').getBoundingClientRect() },
 ];
 let tourStep = 0;

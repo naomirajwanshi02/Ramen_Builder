@@ -224,7 +224,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center;text-decorat
   transition:top .4s var(--anatomy-ease);animation:pop .35s var(--anatomy-ease)}
 .coach-title{font-size:19px;font-weight:900;color:var(--anatomy-strong);line-height:1.2}
 .coach-text{margin-top:4px;font-size:15px;line-height:1.4;color:var(--anatomy-text)}
-.coach-text b{color:var(--anatomy-red)}
+.coach-text b{color:inherit;font-weight:inherit} /* tips are plain text: no orange, no bold */
 .coach-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
 .coach-row .btn{min-width:130px}
 
